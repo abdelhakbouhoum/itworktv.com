@@ -5,8 +5,9 @@
 
 ## Current phase
 
-**Phase 1 — Foundation. Build green. `qa-auditor` pass done — fixes in flight.**
-Next gate: fixes merged → re-audit → **Phase 2 (core site)**.
+**Phase 1 — Foundation. Audit findings closed. Re-audit pending.**
+Verified green: `npm run build` **16/16 budgets**, `npm test` **60/60**, `npm run check` **14/14 contrast**, `npm run check:links` **5 OK / 0 genuine broken** (6 pending = Phase 2 pages not built yet).
+Next gate: re-audit → **Phase 2 (core site)**.
 
 ## Done
 
@@ -106,6 +107,26 @@ Mechanics are sound: reproducible green build, 60 real unit tests, CSP hash prov
 | 11 | NIT | `index.njk`'s 195-char front-matter `description` is ignored (`head.njk:66` uses `site.description`) and unvalidated — a dead field. | seo-specialist |
 
 **Lesson recorded (D17):** a green build is not a correct build. Every budget that exists only as a *documented* rule is unenforced, and this project shipped an unparseable JSON-LD, four 404ing assets and a duplicate nav link through a build that reported 13/13 green. Budgets become real only when a script asserts them.
+
+### Audit findings — all closed in `b25867a` (+ `074c2d7` for #4)
+
+Verified by reading the output, not by trusting the reports:
+
+| # | Status | Evidence |
+|---|---|---|
+| 1 | **fixed** | `JSON.parse` on the raw `ld+json` bytes → `OK: WebSite, Organization`. Zero `&quot;` in any generated file. **The same escaping bug also made `/feed.json` invalid JSON outright** — found by the seo agent while fixing #1, now `version: …/1.1`. |
+| 2 | fixed | `check:links` speaks the linkinator 8 API: `5 OK, 6 broken (6 pending Phase 2, 0 genuine)`. |
+| 3 | fixed | **B14** parses every `ld+json` block and rejects HowTo/FAQPage/SearchAction; **B15** warns >100 KB gz/page; **B16** fails theme-init >400 B (now 180). |
+| 4 | fixed | `074c2d7` — CSP line 383 chars of 2,000, 12 of 100 rules, B10 green. |
+| 5 | fixed | `favicon.svg` 1081 B, `apple-touch-icon.png` 180×180 flattened, `og-default.jpg` 1200×630 — all four head URLs resolve. `site.webmanifest` was wrong twice over: `head.njk` hardcoded it *and* `site.js` carried `webmanifest: "/manifest.webmanifest"`, which has never shipped. Both repointed. |
+| 6 | fixed | `grep -o 'href="/search/"' \| wc -l` → **1**. |
+| 7 | fixed | `class="no-js"` on `<html>`, removed by the existing inline script; CSS-only hide, **zero new JS**. |
+| 8 | deferred | `copy-code.js` + 648 KB of Pagefind with no `/search/` page. Phase 2 resolves this — the search page is what makes Pagefind load-bearing. |
+| 10 | fixed | `lastmod` emitted only where meaningful (updated → newest post → omitted). Zero `lastmod` on the home page with no posts. |
+
+**Interaction worth remembering (D19):** fixing the JSON-LD blocker made **B9 fail on `schema.org`** — `@context` is a vocabulary identifier, never dereferenced. The escaping had *masked* the false positive, because the host-extraction regex stopped at the literal `"` inside `&quot;`. Two agents hit this concurrently from opposite directions; both flagged it rather than editing the other's file. The namespace exclusion now covers `schema.org` as well as `www.w3.org`.
+
+**Still open from the audit:** the search icon is gone from the nav link (design-engineer removed the hardcoded `<a>` that carried it). Cosmetic — decide in Phase 2 whether the nav data grows an icon field.
 
 ## Decisions (added at integration, 2026-10-04/05)
 
