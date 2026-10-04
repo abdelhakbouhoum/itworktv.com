@@ -15,6 +15,16 @@
   `undefined` values are dropped from the JSON by JSON.stringify, which is
   how optional keys are handled here.
 
+  THE `| safe` FILTER IS MANDATORY — the emission line at the bottom is
+  `{{ obj | jsonld | safe }}` and must never lose it. Nunjucks HTML-escapes
+  `{{ }}` output by default, so without `| safe` the page ships
+  `&quot;@context&quot;` … `<script>` is a RAW TEXT element: character
+  references are NOT decoded inside it, so Google reads literal `&quot;`,
+  JSON.parse fails and every rich result is silently lost on every page
+  (this shipped broken once — see docs/SEO.md). The same applies to
+  src/feed.json.njk, which is not inside a <script> but is still
+  autoescaped output.
+
   Emitted types (and ONLY these): WebSite, Organization, BlogPosting,
   CollectionPage, WebPage, BreadcrumbList, ListItem, ImageObject.
   NEVER HowTo, FAQPage or SearchAction (CLAUDE.md).
@@ -97,5 +107,5 @@
 ] -%}
 {%- endif -%}
 
-<script type="application/ld+json">{{ { "@context": "https://schema.org", "@graph": graph } | jsonld }}</script>
+<script type="application/ld+json">{{ { "@context": "https://schema.org", "@graph": graph } | jsonld | safe }}</script>
 {%- endif -%}

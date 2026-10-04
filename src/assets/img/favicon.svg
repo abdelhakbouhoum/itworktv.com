@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="IT Work TV">
+  <!-- Favicon (design-engineer): the site mark — monitor + </> glyph — on a
+       solid brand-navy tile. Deliberately NOT the full wordmark: at 16 px a
+       wordmark is an illegible grey smear, and browsers also rasterise this
+       file against a light/dark chrome background, so it carries its own
+       opaque tile. Geometry is shared with apple-touch-icon.png and
+       og-default.jpg; keep all three in sync. -->
+  <rect width="32" height="32" rx="7" fill="#0A1220"/>
+  <rect x="3.2" y="5.4" width="25.6" height="18.8" rx="4.6" fill="#FFFFFF"/>
+  <rect x="6" y="8.2" width="20" height="13.2" rx="1.8" fill="#0B2A45"/>
+  <g fill="none" stroke="#22D3EE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="12.5,11.9 9.2,14.8 12.5,17.7"/>
+    <line x1="15.9" y1="11.5" x2="14.4" y2="18.1"/>
+    <polyline points="19.4,11.9 22.7,14.8 19.4,17.7"/>
+  </g>
+  <path d="M12.2 24h7.6l2.6 3.4H9.6z" fill="#FFFFFF"/>
+</svg>

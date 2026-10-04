@@ -45,8 +45,9 @@ const site = {
   repository: "https://github.com/itworktv/itworktv",
 
   // ---- PWA manifest (data-driven <link> in head.njk — never hardcode in a
-  // template). Shipped via the selective src/assets passthrough allow-list.
-  webmanifest: "/manifest.webmanifest",
+  // template). Shipped via the selective src/assets passthrough allow-list,
+  // which flattens src/assets/manifest.webmanifest to /assets/manifest.webmanifest.
+  webmanifest: "/assets/manifest.webmanifest",
 };
 
 export default site;

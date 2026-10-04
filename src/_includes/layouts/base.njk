@@ -2,11 +2,18 @@
      robots, theme-color, favicons, manifest, feeds, Open Graph, JSON-LD)
      comes from partials/head.njk (P1.9, owned by seo-specialist) — this
      layout must not duplicate any of it. base.njk contributes only the
-     structural shell: html lang, the color-scheme meta, the fingerprinted
-     CSS link, the byte-stable inline theme-init script (hashed into the CSP
-     by scripts/build-headers.mjs), skip link, header, main and footer. -#}
+     structural shell: html lang, the no-js marker, the color-scheme meta,
+     the fingerprinted CSS link, the byte-stable inline theme-init script
+     (hashed into the CSP by scripts/build-headers.mjs), skip link, header,
+     main and footer.
+
+     `class="no-js"` is flipped OFF by the inline theme-init script, which
+     always runs when JS is on. That costs no extra bytes (no second script)
+     and lets CSS hide JS-only affordances — chiefly the theme toggle, which
+     is a dead control with JavaScript off. With no JS the site simply
+     follows the OS colour scheme. -#}
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   {% include "partials/head.njk" %}
   <meta name="color-scheme" content="light dark">

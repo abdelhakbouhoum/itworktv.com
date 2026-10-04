@@ -14,6 +14,18 @@ layout: false
   (JSON.stringify, registered in eleventy.config.js) — no hand-written
   JSON (CLAUDE.md). Items are accumulated as JSON strings and joined;
   the `jsonld` filter is what makes object/array values (tags) safe.
+
+  `| safe` IS MANDATORY on every `| jsonld` interpolation below. Nunjucks
+  autoescapes `{{ }}`, so without it the build shipped `&quot;title&quot;` and
+  JSON.parse on /feed.json failed outright. This is the same class of bug
+  as the one that shipped in jsonld.njk (see docs/SEO.md) — grep for `| jsonld`
+  without `| safe` before declaring this feed done.
+
+  JSON Feed 1.1 field names are exact and case-sensitive
+  (https://jsonfeed.org/version/1.1/): the feed-level author array is
+  `authors` and each item's is `authors` too. Singular `author` is the
+  deprecated 1.0 spelling; 1.1 readers are entitled to ignore it. This file
+  shipped `author` (both levels) until the 2026-10-05 audit.
 -#}
 {%- set items = "" -%}
 {%- for post in collections.posts.slice(0, 20) -%}
@@ -44,22 +56,22 @@ layout: false
   "date_modified": modified,
   "image": itemImage,
   "tags": post.data.tags,
-  "author": { "name": site.author.name, "url": site.url ~ "/about/" }
+  "authors": [ { "name": site.author.name, "url": site.url ~ "/about/" } ]
 } -%}
-{%- set items = items ~ (item | jsonld) ~ (", " if not loop.last else "") -%}
+{%- set items = items ~ (item | jsonld | safe) ~ (", " if not loop.last else "") -%}
 {%- endfor -%}
 {
   "version": "https://jsonfeed.org/version/1.1",
-  "title": {{ (site.title | default("")) | jsonld }},
-  "home_page_url": {{ (site.url ~ "/" | default("")) | jsonld }},
-  "feed_url": {{ (site.url ~ "/feed.json" | default("")) | jsonld }},
-  "description": {{ (site.description | default("")) | jsonld }},
+  "title": {{ (site.title | default("")) | jsonld | safe }},
+  "home_page_url": {{ (site.url ~ "/" | default("")) | jsonld | safe }},
+  "feed_url": {{ (site.url ~ "/feed.json" | default("")) | jsonld | safe }},
+  "description": {{ (site.description | default("")) | jsonld | safe }},
   "language": "en",
-  "icon": {{ (site.url ~ "/assets/img/icon-192.png" | default("")) | jsonld }},
-  "image": {{ (site.url ~ "/assets/img/og-default.jpg" | default("")) | jsonld }},
-  "author": {
-    "name": {{ (site.author.name | default("")) | jsonld }},
-    "url": {{ (site.url ~ "/about/" | default("")) | jsonld }}
-  },
-  "items": [{{ items }}]
+  "icon": {{ (site.url ~ "/assets/img/icon-192.png" | default("")) | jsonld | safe }},
+  "image": {{ (site.url ~ "/assets/img/og-default.jpg" | default("")) | jsonld | safe }},
+  "authors": [
+    { "name": {{ (site.author.name | default("")) | jsonld | safe }},
+      "url": {{ (site.url ~ "/about/" | default("")) | jsonld | safe }} }
+  ],
+  "items": [{{ items | safe }}]
 }

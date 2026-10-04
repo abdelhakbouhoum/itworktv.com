@@ -6,24 +6,49 @@ layout: false
   sitemap.xml (P1.10). PLAN §3:
     - every <loc> is an indexable page — membership is decided by the ONE
       shared macro (PLAN §2.3), never re-implemented here;
-    - lastmod = updated ?? date (date = publication date, UTC);
+    - lastmod is emitted ONLY when it is meaningful (see below);
     - no <changefreq> / <priority> (Google ignores them);
     - the sitemap never lists itself.
 
-  `collections.pagesAll` items expose .url, .date (a JS Date, set by
-  Eleventy from the front-matter `date`) and .data (the front-matter
-  cascade — item.data.robots is the §2.3 escape hatch, item.data.updated
-  the revision date). Drafts never ship, but the `draft` guard is kept:
-  a leaked draft must not leak into the sitemap either.
+  LASTMOD IS OPTIONAL AND MUST NOT LIE
+  sitemaps.org: <lastmod> is optional, W3C Datetime, "if desired" without
+  the time portion (https://www.sitemaps.org/protocol.html). Google uses the
+  value only "if it's consistently and verifiably" accurate, and it "should
+  reflect the date and time of the last significant update to the page"
+  (https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
+
+  So lastmod = the page's own revision signal, in this order:
+    1. front-matter `updated` (real editorial revision) — string or Date;
+    2. front-matter `date` ONLY for a POST (its publication date is a
+       genuine, meaningful signal);
+    3. otherwise the element is OMITTED.
+
+  Pages without a real date — most importantly / (src/pages/index.njk has
+  no front-matter `date`, so Eleventy falls back to the FILE MTIME) — must
+  not get one. This shipped once as a BLOCKER-adjacent defect: every rebuild
+  rewrote the home page's <lastmod> with a new mtime, i.e. the sitemap told
+  crawlers the home page had changed on every single build. A lastmod that
+  changes without a content change trains crawlers to ignore lastmod
+  everywhere in the file.
+
+  The home page is a rolling archive: it genuinely changes whenever a post
+  ships, so it is the one non-post page that gets a real lastmod — the
+  newest publishable post's date (collections.newestPost, PLAN §2.2). That
+  is stable across rebuilds and true.
 -#}
 {% import "partials/indexing.njk" as indexing %}
+{%- set siteLastmod = collections.newestPost[0].date.toISOString() if collections.newestPost | length > 0 else undefined -%}
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {%- for item in collections.pagesAll -%}
 {%- set indexable = indexing.is_indexable(item, collections, item.data.robots) -%}
+{#- Post shape: /posts/<slug>/ — parts ["", "posts", "<slug>", ""]. The bare
+      /posts/ index has parts[2] == "" and /posts/page/N/ has parts[3] ==
+      "page", so both fall through to the no-lastmod branch. -#}
+{%- set parts = item.url.split("/") -%}
+{%- set isPostItem = parts[1] == "posts" and parts[2] and parts[2] != "page" and parts[3] == "" -%}
 {%- if indexable == "true" and not item.data.draft -%}
-{#- lastmod: real revision date when present (PLAN §4), else publication
-      date. `updated` may be a string (schema) or a Date (YAML auto-parse). -#}
+{#- `updated` may be a string (PLAN §4) or a Date (YAML auto-parse). -#}
 {%- set lastmod = undefined -%}
 {%- if item.data.updated -%}
 {%- if item.data.updated is string -%}
@@ -31,12 +56,17 @@ layout: false
 {%- else -%}
 {%- set lastmod = item.data.updated.toISOString() -%}
 {%- endif -%}
-{%- else -%}
+{%- elif item.url == "/" and siteLastmod -%}
+{#- Home is a rolling archive: lastmod = newest publishable post. -#}
+{%- set lastmod = siteLastmod -%}
+{%- elif isPostItem and item.date -%}
 {%- set lastmod = item.date.toISOString() -%}
 {%- endif -%}
   <url>
     <loc>{{ site.url }}{{ item.url }}</loc>
+{%- if lastmod %}
     <lastmod>{{ lastmod }}</lastmod>
+{%- endif %}
   </url>
 {%- endif -%}
 {%- endfor -%}

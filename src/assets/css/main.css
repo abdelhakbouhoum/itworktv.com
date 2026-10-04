@@ -213,7 +213,12 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
   vertical-align: -0.18em;
 }
 
-/* theme toggle: show the icon of the theme you would switch TO */
+/* theme toggle: show the icon of the theme you would switch TO.
+   Without JS the button is inert, so `.no-js` (set in base.njk, removed by
+   the inline theme-init script) hides it rather than shipping a dead
+   control. The icon swap below still keys off data-theme / prefers-color-scheme,
+   so nothing here depends on the class being present. */
+.no-js .theme-toggle { display: none; }
 .theme-toggle .icon-sun { display: none; }
 .theme-toggle .icon-moon { display: block; }
 html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }

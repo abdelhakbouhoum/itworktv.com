@@ -36,10 +36,9 @@
         <a href="/tags/">Tags</a>
         <a href="/about/">About</a>
       {%- endif -%}
-      <a href="/search/">
-        <svg aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
-        <span>Search</span>
-      </a>
+      {#- Search comes from the `nav` data file (which lists /search/); do NOT
+          hardcode a second link here — two identical adjacent links make a
+          keyboard and screen-reader user hear "Search" twice for nothing. -#}
       <a class="site-nav__rss" href="/feed.xml" title="RSS feed" aria-label="RSS feed">
         <svg aria-hidden="true" focusable="false"><use href="#i-rss"></use></svg>
       </a>

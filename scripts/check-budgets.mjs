@@ -25,9 +25,14 @@
  *       canonical, not in sitemap
  *   B12 >=3-post tag pages: canonical + sitemap      (fail)
  *   B13 no URL contains \d{4}/\d{2}/\d{2}            (fail)
+ *   B14 every ld+json block parses, is non-empty,   (fail)
+ *       and contains no HowTo/FAQPage/SearchAction
+ *   B15 any single HTML page <= 100 KiB gzipped      (warn)
+ *   B16 inline theme-init script <= 400 bytes        (fail)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { loadPosts, readTagRegistry } from "./validate-content.mjs";
@@ -42,6 +47,8 @@ const FILE_COUNT_WARN = 15_000; // B4 (PLAN §10.2)
 const FILE_COUNT_FAIL = 19_000; // B4 — deliberately below the 20,000 Pages cap (R5)
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // B4 (PLAN §10.6)
 const LARGE_FILE_WARN = 1024 * 1024; // B5
+const HTML_PAGE_GZIP_WARN = 100 * 1024; // B15 (PLAN §10.2 — "any single HTML page <= 100 KB gzipped", warn)
+const THEME_INIT_MAX_BYTES = 400; // B16 (PLAN §10.7 allow-list row 1)
 
 /** PLAN §10.7 allow-list — the complete client-JS surface. No 6th entry without a §6.4 row + owner approval. */
 const JS_ALLOW_LIST = new Set(["assets/js/theme-toggle.js", "assets/js/copy-code.js"]);
@@ -51,6 +58,15 @@ const ALLOWED_EXTERNAL_HOSTS = new Set(["img.itworktv.com", "static.cloudflarein
 
 /** PLAN §2.3 — URLs that are never indexable, by shape. */
 const NEVER_INDEXABLE_EXACT = new Set(["/404.html", "/feed.xml", "/feed.json", "/sitemap.xml", "/robots.txt"]);
+
+/**
+ * CLAUDE.md / jsonld.njk: structured-data types that must NEVER be emitted.
+ * HowTo and FAQPage are rich-result bait that Google penalises on a help-blog
+ * with no real Q&A; SearchAction is a sitelinks-searchbox deprecation risk.
+ * B14 asserts their absence from every shipped page — a "conventions" note in
+ * a template is not a gate.
+ */
+const FORBIDDEN_LD_TYPES = new Set(["HowTo", "FAQPage", "SearchAction"]);
 
 const results = [];
 function record(rule, status, detail) {
@@ -146,6 +162,54 @@ function countMatches(html, re) {
   return (html.match(re) ?? []).length;
 }
 
+/**
+ * Raw inner bytes of every `<script type="application/ld+json">` block.
+ *
+ * Deliberately NOT an HTML-unescape pass: the whole point of B14 is that the
+ * bytes a browser hands to `JSON.parse` must parse as-is. Nunjucks autoescapes
+ * by default (node_modules/nunjucks/src/environment.js: `autoescape ?? true`;
+ * Eleventy never overrides it), so `{{ … | jsonld }}` without `| safe`
+ * emits `{&quot;@context&quot;…}` — HTML that LOOKS like structured data in a
+ * source view but that no consumer can parse. Unescaping here would hide
+ * exactly the defect the rule exists to catch.
+ *
+ * @returns {{ index: number, raw: string }[]}
+ */
+function extractLdJsonBlocks(html) {
+  const out = [];
+  const re = /<script\b[^>]*\btype\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script\s*>/gi;
+  let match;
+  while ((match = re.exec(html)) !== null) {
+    out.push({ index: out.length, raw: match[1] });
+  }
+  return out;
+}
+
+/**
+ * The document with every `<script type="application/ld+json">…</script>`
+ * block removed, for rules that scan the whole markup for URLs (B9).
+ * See ruleB9 for why structured data is excluded from host extraction.
+ */
+function stripLdJsonBlocks(html) {
+  return html.replace(
+    /<script\b[^>]*\btype\s*=\s*["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script\s*>/gi,
+    ""
+  );
+}
+
+/** Every `@type` value anywhere in a parsed JSON-LD document (graph or bare). */
+function collectLdTypes(node, acc = new Set()) {
+  if (Array.isArray(node)) {
+    for (const item of node) collectLdTypes(item, acc);
+  } else if (node && typeof node === "object") {
+    const t = node["@type"];
+    if (typeof t === "string") acc.add(t);
+    else if (Array.isArray(t)) for (const v of t) if (typeof v === "string") acc.add(v);
+    for (const value of Object.values(node)) collectLdTypes(value, acc);
+  }
+  return acc;
+}
+
 // ---- rules ------------------------------------------------------------------
 
 function ruleB1(files) {
@@ -236,7 +300,17 @@ function ruleB8(files) {
 function ruleB9(files) {
   const seen = new Set();
   for (const f of files.filter(isHtml)) {
-    for (const url of extractAllUrls(readFileSync(f.abs, "utf8"), { stripNamespaces: true })) {
+    // ld+json blocks are removed before host extraction. Their URLs are
+    // JSON string values ("@context": "https://schema.org") — identifiers
+    // the browser never dereferences, exactly like the SVG xmlns URIs that
+    // `stripNamespaces` already excludes. Without this, B9 fails on
+    // schema.org: the JSON-LD escape bug (Nunjucks autoescapes a filter
+    // output without `| safe`) also turned `"` into `&quot;`, which merged
+    // every URL in the block into one unparsable run starting at
+    // `https://schema.org&quot;…`. That masked the bug for weeks — B9 failed
+    // on a garbage hostname instead of the real defect, and B14 now owns it.
+    const html = stripLdJsonBlocks(readFileSync(f.abs, "utf8"));
+    for (const url of extractAllUrls(html, { stripNamespaces: true })) {
       let host;
       try {
         host = new URL(url).hostname;
@@ -284,6 +358,113 @@ function ruleB13(files) {
   }
   if (offenders.length > 0) return record("B13", "fail", `date-shaped URL found: ${offenders.slice(0, 5).join("; ")}`);
   record("B13", "pass", "no URL contains a YYYY/MM/DD date segment");
+}
+
+/**
+ * B14 — structured data must parse, be non-empty, and stay inside the
+ * CLAUDE.md type allow-list.
+ *
+ * Three independent defects, one rule, because they share an input and all
+ * fail the same way — silently, to the consumer rather than to us:
+ *   1. JSON.parse error        -> HTML-escaped or malformed block
+ *   2. empty / whitespace-only -> page "ships structured data" but has none
+ *   3. forbidden @type         -> HowTo / FAQPage / SearchAction
+ *
+ * A page that emits no ld+json block at all is NOT a failure: the partial is
+ * gated on `indexable`, so noindex pages legitimately ship none. What is a
+ * failure is an empty block — that is the template rendering an empty graph,
+ * which reads as "has structured data" in the source and parses as nothing.
+ */
+function ruleB14(files) {
+  const htmlFiles = files.filter(isHtml);
+  if (htmlFiles.length === 0) return record("B14", "skip", "no HTML generated yet");
+
+  const parseErrors = [];
+  const empties = [];
+  const forbidden = [];
+  let blocks = 0;
+
+  for (const f of htmlFiles) {
+    for (const block of extractLdJsonBlocks(readFileSync(f.abs, "utf8"))) {
+      blocks += 1;
+      if (block.raw.trim() === "") {
+        empties.push(`${f.rel}: block #${block.index} is empty`);
+        continue;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(block.raw);
+      } catch (err) {
+        const snippet = block.raw.slice(0, 60).replace(/\s+/g, " ");
+        parseErrors.push(`${f.rel}: JSON.parse failed (${err.message}) — starts "${snippet}"`);
+        continue;
+      }
+      if (parsed === null || (typeof parsed === "object" && Object.keys(parsed).length === 0)) {
+        empties.push(`${f.rel}: block #${block.index} parses to an empty object`);
+        continue;
+      }
+      for (const type of collectLdTypes(parsed)) {
+        if (FORBIDDEN_LD_TYPES.has(type)) forbidden.push(`${f.rel}: @type "${type}" (forbidden by CLAUDE.md)`);
+      }
+    }
+  }
+
+  if (parseErrors.length > 0) {
+    return record("B14", "fail", `${parseErrors.length} ld+json block(s) do not parse — ${parseErrors.slice(0, 5).join("; ")}`);
+  }
+  if (empties.length > 0) {
+    return record("B14", "fail", `${empties.length} ld+json block(s) empty — ${empties.slice(0, 5).join("; ")}`);
+  }
+  if (forbidden.length > 0) {
+    return record("B14", "fail", `forbidden @type in ${forbidden.length} block(s) — ${forbidden.slice(0, 5).join("; ")}`);
+  }
+  record("B14", "pass", `${blocks} ld+json block(s) across ${htmlFiles.length} page(s) parse; no forbidden @type`);
+}
+
+/**
+ * B15 — per-page HTML weight. PLAN §10.2 states "any single HTML page
+ * <= 100 KB gzipped … warn". A WARN, deliberately: it is an ASSUMPTION in the
+ * plan, not a published limit, and a long-but-useful post should prompt a
+ * look rather than block a deploy. Reported against the LARGEST page so the
+ * number is actionable.
+ */
+function ruleB15(files) {
+  const htmlFiles = files.filter(isHtml);
+  if (htmlFiles.length === 0) return record("B15", "skip", "no HTML generated yet");
+
+  let largest = { rel: "", bytes: 0 };
+  const over = [];
+  for (const f of htmlFiles) {
+    const bytes = gzipSync(readFileSync(f.abs)).length;
+    if (bytes > largest.bytes) largest = { rel: f.rel, bytes };
+    if (bytes > HTML_PAGE_GZIP_WARN) over.push(`${f.rel} (${bytes} B)`);
+  }
+  if (over.length > 0) {
+    return record("B15", "warn", `${over.length} page(s) > ${HTML_PAGE_GZIP_WARN} B gzipped: ${over.slice(0, 5).join(", ")}`);
+  }
+  record("B15", "pass", `largest page ${largest.rel} ${largest.bytes}/${HTML_PAGE_GZIP_WARN} B gzipped`);
+}
+
+/**
+ * B16 — the inline theme-init script must stay <= 400 bytes (PLAN §10.7
+ * allow-list row 1). It is a real constraint, not hygiene: the CSP
+ * `script-src` carries a SHA-256 of these bytes (B10), and an inline script
+ * that cannot shrink is one nobody can safely evolve.
+ *
+ * Checked against the SOURCE partial, which is inlined verbatim (global data
+ * `themeInit`, eleventy.config.js) — so source length == shipped length, and
+ * B16 measures the thing the CSP hashes rather than re-deriving it.
+ */
+function ruleB16() {
+  const themeInit = path.join(repoRoot, "src", "_includes", "partials", "theme-init.njk");
+  if (!existsSync(themeInit)) {
+    return record("B16", "skip", "src/_includes/partials/theme-init.njk not present yet (design-engineer P1.8)");
+  }
+  const bytes = readFileSync(themeInit).length;
+  if (bytes > THEME_INIT_MAX_BYTES) {
+    return record("B16", "fail", `theme-init.njk is ${bytes} bytes > ${THEME_INIT_MAX_BYTES} (PLAN §10.7 row 1)`);
+  }
+  record("B16", "pass", `theme-init ${bytes}/${THEME_INIT_MAX_BYTES} bytes`);
 }
 
 /**
@@ -404,6 +585,9 @@ async function main() {
   ruleB9(files);
   ruleB10();
   ruleB13(files);
+  ruleB14(files);
+  ruleB15(files);
+  ruleB16();
 
   // Inputs for the indexability rules.
   let siteUrl = "https://itworktv.com";

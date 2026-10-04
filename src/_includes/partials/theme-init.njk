@@ -1,1 +1,1 @@
-(function(){try{var t=localStorage.getItem("itworktv-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}})();
+(function(){var d=document.documentElement;d.classList.remove("no-js");try{var t=localStorage.getItem("itworktv-theme");if(t==="light"||t==="dark")d.dataset.theme=t}catch(e){}})();

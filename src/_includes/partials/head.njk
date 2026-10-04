@@ -60,14 +60,20 @@
 {%- set pageTitle = (title if title else site.title) ~ " | " ~ site.title -%}
 {%- endif -%}
 
-{#- meta description: posts/pages from front matter, thin-or-thick tag
-      pages from the registry, home from the site description. -#}
-{%- if isHome -%}
-{%- set metaDescription = site.description -%}
+{#- meta description, ONE source of truth, in priority order:
+      1. the page's own front-matter `description` (posts AND static pages
+         including the home page — if a page sets one, it wins and is NOT
+         silently ignored);
+      2. thin-or-thick tag pages from the tag registry;
+      3. site.description, the last-resort fallback.
+      Precedence note: a tag page falls back to the registry before the
+      site blurb, because a registry description is written for that tag. -#}
+{%- if description -%}
+{%- set metaDescription = description -%}
 {%- elif isTag and tagDescription -%}
 {%- set metaDescription = tagDescription -%}
 {%- else -%}
-{%- set metaDescription = description if description else site.description -%}
+{%- set metaDescription = site.description -%}
 {%- endif -%}
 
 {#- OG image: the post's hero when present, else the branded default.
@@ -115,9 +121,16 @@
 <meta name="theme-color" content="#0A1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
+{#- Icon set. Every href here MUST resolve to a file in _site (a 404 in the
+      head is a real defect, not a cosmetic one):
+        /assets/img/favicon.svg          — scalable favicon (P2.12)
+        /assets/img/apple-touch-icon.png — 180x180, iOS home screen
+        /assets/manifest.webmanifest     — passthrough of
+          src/assets/manifest.webmanifest (eleventy.config.js allow-list).
+          NOT /site.webmanifest: that path has never shipped. -#}
 <link rel="icon" type="image/svg+xml" href="{{ site.url }}/assets/img/favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ site.url }}/assets/img/apple-touch-icon.png">
-<link rel="manifest" href="{{ site.url }}/site.webmanifest">
+<link rel="manifest" href="{{ site.url }}/assets/manifest.webmanifest">
 
 {#- The only third-party host that serves content: the R2 image CDN. -#}
 <link rel="preconnect" href="https://img.itworktv.com">
