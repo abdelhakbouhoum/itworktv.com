@@ -1,22 +1,25 @@
 # PROGRESS — IT Work TV
 
 > Resume instruction for a fresh session: read this file first, then `docs/PLAN.md`, then `CLAUDE.md`.
-> Last updated: 2026-10-04 (UTC)
+> Last updated: 2026-10-05 (UTC)
 
 ## Current phase
 
-**Phase 1 — Foundation. In progress. GATE 1 passed 2026-10-04.**
+**Phase 1 — Foundation. Build green. `qa-auditor` full pass running.**
+Next gate: audit clean → commit Phase 1 → **Phase 2 (core site)**.
 
 ## Done
 
-- Repo initialised (`git init`) at `d:\DEV\itworktv.com`. Empty project; nothing committed yet.
+- Repo initialised (`git init`) at `d:\DEV\itworktv.com`. Three commits: Phase 0 plan (`4d12aa8`), Phase 1 foundation (`ae3820f`), integration fixes (`e98d88d`).
 - `.gitignore` created. `.claude/settings.json` is **ignored** because it contains a live plaintext API token (see Risks).
 - `.nvmrc` (Node 22), `.editorconfig` created.
 - Agent roster created: `.claude/agents/` — `site-architect`, `eleventy-engineer`, `design-engineer`, `seo-specialist`, `content-strategist`, `devops-engineer`, `qa-auditor`.
 - `CLAUDE.md` created (stack, commands, hard rules, budgets, agent roster, how to add a post).
-- **Cloudflare platform facts verified** (see below). Eleventy v3 toolchain verification still running.
+- **Cloudflare platform facts verified** (see below).
 - **`docs/PLAN.md` written (~101 KB, §0–§10 incl. task graph, 19 risks, acceptance criteria, 13 budget rules).**
 - **`docs/ARCHITECTURE.md` written (~17 KB).**
+- **Phase 1 delivered by five agents** — design (tokens, CSS 4.2 KB gz, layouts, partials), SEO (head, JSON-LD, indexing, robots, sitemap, feeds), content (`tag-registry.json` 26 slugs, `WRITING.md` 220 lines), devops (`_headers` 12 rules, `_redirects`, CI, Dependabot, SETUP/IMAGES docs), eleventy (config, scripts, data, 60 unit tests).
+- **The integrated build is green end to end** — all seven stages (`clean → validate → css → elephant → pagefind → headers → check:budgets`) and **13/13 budget rules pass**. `npm test` 60/60. `npm run check` 14/14 contrast pairs in both themes.
 - **Corrections the architect made to the brief, accepted:**
   - **Build order is wrong in the brief.** "Eleventy → CSS" cannot work: the hashed CSS filename must exist *before* templates render its `<link>`. Correct order is `clean → validate → css → elephant → pagefind → headers → check:budgets`.
   - HTML minification is an Eleventy `addTransform`, not a separate post-process script (v3 has no native minifier).
@@ -79,10 +82,18 @@ Running in parallel against the frozen PLAN §2.2 contract:
 - `eleventy-engineer` — P1.1, P1.2, P1.4, P1.6 (import-macro spike), P1.11, P1.12, P1.13, P1.16 (config, data files, scripts, unit tests, new/queue)
 - `design-engineer` — P1.7, P1.8 (tokens.json, main.css, Prism theme CSS, layouts, partials, theme-init/toggle/copy-code, wordmark SVG)
 - `seo-specialist` — P1.9, P1.10, P1.18 (head.njk, jsonld.njk, indexing.njk, robots, sitemap, feeds, SEO.md)
-- `content-strategist` — P1.5, P1.17 (tags.json skeleton, WRITING.md)
+- `content-strategist` — P1.5, P1.17 (tag-registry.json 26 slugs, WRITING.md)
 - `devops-engineer` — P1.14, P1.15, P1.19 (_headers, _redirects, .env.example, ci.yml, dependabot, SETUP.md, IMAGES.md)
 
 Then: `npm run build` must be green → commit Phase 1 → `qa-auditor` full pass → fix blockers → commit → **Phase 2**.
+
+## Decisions (added at integration, 2026-10-04/05)
+
+| # | Decision | Why |
+|---|---|---|
+| D14 | **The tag registry file is `src/_data/tag-registry.json`, never `tags.json`.** A global data file named `tags.json` binds Eleventy's reserved `tags` key, which `TemplateData.getCleanedTagsImmutable` requires to be a slug string/array. The registry is an object, so it aborts every build. The registry is read from disk by `eleventy.config.js` (`collections.tags`) and by `validate-content.mjs`, never through global data. | Found empirically: every build died with `String or Array expected for 'tags'`. Not documented anywhere in the Eleventy docs — recorded here so nobody renames it back. |
+| D15 | **Nunjucks template references carry the `.njk` extension** (`{% extends "layouts/base.njk" %}`). Eleventy's Nunjucks `FileSystemLoader` sets no `defaultExtension`, so an extension-less name is a fatal *template not found*. The standard Eleventy idiom `{% extends "base.njk" %}` also fails here because `_includes` is the loader root — layouts are addressed from that root, not from their own folder. | Cost three build iterations to diagnose; the loader has exactly two search roots (`src/_includes/`, project root). |
+| D16 | **`npm test` (60 unit tests) and `npm run check` (contrast) are separate gates from `npm run build`.** All three must be green before Phase 2 starts — the audit rules require it. | A green build does not prove the validator's limits or the token contrast; those scripts run outside the build chain. |
 
 ## Decisions
 
@@ -119,5 +130,6 @@ Then: `npm run build` must be green → commit Phase 1 → `qa-auditor` full pas
 ## Risks / blockers
 
 - **SECURITY — open.** `.claude/settings.json` contains `ANTHROPIC_AUTH_TOKEN` (an OpenRouter key, plaintext) and `ANTHROPIC_BASE_URL`. It is now gitignored, but **the token is exposed on disk and should be rotated by the owner.** It must never be committed.
-- Node on this machine is 24, not 22; the plan targets 22 for CI/Pages.
-- Two platform-fact verification reports are still running; any number in the brief that turns out to be stale will be corrected in `docs/PLAN.md` before GATE 1.
+- Node on this machine is 24, not 22; the plan targets 22 for CI/Pages. Local v24 ran the whole pipeline green — CI on 22 is unverified.
+- D13(a) is still open: `style-src 'unsafe-inline'` in the CSP must be re-tested in Phase 2 once `/search/` exists. Pagefind injects `<style>` at runtime, so the escape hatch may be removable.
+- **No posts exist yet.** Every collection (home, tags, archive, pagination, sitemap, feed, search index) is untested against real content. Phase 2 must seed posts before any of those paths can be verified.
