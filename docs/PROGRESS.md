@@ -5,8 +5,8 @@
 
 ## Current phase
 
-**Phase 1 — Foundation. Build green. `qa-auditor` full pass running.**
-Next gate: audit clean → commit Phase 1 → **Phase 2 (core site)**.
+**Phase 1 — Foundation. Build green. `qa-auditor` pass done — fixes in flight.**
+Next gate: fixes merged → re-audit → **Phase 2 (core site)**.
 
 ## Done
 
@@ -87,6 +87,26 @@ Running in parallel against the frozen PLAN §2.2 contract:
 
 Then: `npm run build` must be green → commit Phase 1 → `qa-auditor` full pass → fix blockers → commit → **Phase 2**.
 
+## Phase 1 audit (qa-auditor, 2026-10-04) — fixes dispatched
+
+Mechanics are sound: reproducible green build, 60 real unit tests, CSP hash proven against shipped bytes, contrast machine-checked in both themes, B1–B13 pass, secrets hygiene clean. One blocker, five should-fixes, four nits.
+
+| # | Sev | Finding | Owner |
+|---|---|---|---|
+| 1 | **BLOCKER** | **JSON-LD unparseable on every page.** `jsonld.njk:100` pipes through `| jsonld` without `\| safe`, so Nunjucks escapes it: the page ships `&quot;@context&quot;…` and `JSON.parse` fails. `<script>` content is raw text, so entities are never decoded — every rich result is silently lost. The minifier is innocent. | seo-specialist |
+| 2 | SHOULD-FIX | `check:links` crashes — destructures `result.summary`, but linkinator 8.1.0 returns `{links, passed}`. Re-run correctly: **13 broken links**, 6 of them internal 404s for pages Phase 2 has not built yet. | eleventy-engineer |
+| 3 | SHOULD-FIX | **No script validates JSON-LD**, nor enforces the 100 KB-gzipped-HTML warn (§10.2) or the theme-init ≤ 400 B rule (A2.14). This is why #1 shipped silently — the pipeline was self-certifying. | eleventy-engineer |
+| 4 | SHOULD-FIX | Shipped CSP diverges from canonical **PLAN §10.5**: missing `object-src 'none'`, `font-src 'self'`, `connect-src … cloudflareinsights.com`; HSTS 31536000 vs 63072000; `Permissions-Policy` missing `interest-cohort=()`. | devops-engineer |
+| 5 | SHOULD-FIX | **Four head assets 404 on every page**: `favicon.svg`, `apple-touch-icon.png`, `og-default.jpg` (a broken `og:image` claim) do not exist; `site.webmanifest` is the wrong path (ships at `/assets/manifest.webmanifest`). | design-engineer (assets) + seo-specialist (path) |
+| 6 | SHOULD-FIX | **Duplicate "Search" nav link** — `nav.js` lists it and `header.njk:38-42` hardcodes a second. `grep -c` returns 2. Adjacent identical links are a keyboard/screen-reader defect. | design-engineer |
+| 7 | SHOULD-FIX | **Theme toggle does not degrade with JS off** — no `no-js` guard, so the button stays visible and inert. | design-engineer |
+| 8 | NIT | `copy-code.js` (1006 B) ships unreferenced on the code-free home page; Pagefind ships 648 KB across 15 files with no `/search/` page. Both pass B3, which allow-lists by path, not by reference. | Phase 2 |
+| 9 | NIT | html-validate: `doctype-style` and `attribute-boolean-style`, both minifier-introduced and cosmetically valid. | eleventy-engineer |
+| 10 | NIT | Sitemap `lastmod` for `/` is the file mtime — churns every rebuild. `index.njk` has no `date`. | seo-specialist |
+| 11 | NIT | `index.njk`'s 195-char front-matter `description` is ignored (`head.njk:66` uses `site.description`) and unvalidated — a dead field. | seo-specialist |
+
+**Lesson recorded (D17):** a green build is not a correct build. Every budget that exists only as a *documented* rule is unenforced, and this project shipped an unparseable JSON-LD, four 404ing assets and a duplicate nav link through a build that reported 13/13 green. Budgets become real only when a script asserts them.
+
 ## Decisions (added at integration, 2026-10-04/05)
 
 | # | Decision | Why |
@@ -94,6 +114,8 @@ Then: `npm run build` must be green → commit Phase 1 → `qa-auditor` full pas
 | D14 | **The tag registry file is `src/_data/tag-registry.json`, never `tags.json`.** A global data file named `tags.json` binds Eleventy's reserved `tags` key, which `TemplateData.getCleanedTagsImmutable` requires to be a slug string/array. The registry is an object, so it aborts every build. The registry is read from disk by `eleventy.config.js` (`collections.tags`) and by `validate-content.mjs`, never through global data. | Found empirically: every build died with `String or Array expected for 'tags'`. Not documented anywhere in the Eleventy docs — recorded here so nobody renames it back. |
 | D15 | **Nunjucks template references carry the `.njk` extension** (`{% extends "layouts/base.njk" %}`). Eleventy's Nunjucks `FileSystemLoader` sets no `defaultExtension`, so an extension-less name is a fatal *template not found*. The standard Eleventy idiom `{% extends "base.njk" %}` also fails here because `_includes` is the loader root — layouts are addressed from that root, not from their own folder. | Cost three build iterations to diagnose; the loader has exactly two search roots (`src/_includes/`, project root). |
 | D16 | **`npm test` (60 unit tests) and `npm run check` (contrast) are separate gates from `npm run build`.** All three must be green before Phase 2 starts — the audit rules require it. | A green build does not prove the validator's limits or the token contrast; those scripts run outside the build chain. |
+| D17 | **A documented budget is not a budget.** Every rule in PLAN §10 must have a script that asserts it, or it is unenforced. Phase 1 shipped a 13/13-green build containing unparseable JSON-LD, four 404ing head assets and a duplicated nav link. | The audit made the generalisation concrete: unenforced rules are comments. New budgets ship with their checker in the same change. |
+| D18 | **PLAN §10.5 is canonical for security headers; the shipped `_headers` is not.** When they diverge, the code is the bug and gets changed — not the plan. | Matches how D11 resolved the front-matter limits: the spec wins over the implementation. |
 
 ## Decisions
 
