@@ -1,0 +1,11 @@
+# Normalise line endings across Windows / Linux / macOS.
+# The author works on Windows; CI and Cloudflare Pages build on Linux.
+# Without this, every commit churns line endings.
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.woff2 binary

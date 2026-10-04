@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Eleventy build output
+_site/
+.cache/
+.clean/
+
+# Images: originals and generated variants never live in git
+images-src/
+images-out/
+
+# Secrets and local config — NEVER commit
+.env
+.env.*
+!.env.example
+.claude/settings.json
+.claude/settings.local.json
+.mcp.json
+
+# QA artefacts
+docs/screenshots/
+.lighthouseci/
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
