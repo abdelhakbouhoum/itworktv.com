@@ -1,0 +1,29 @@
+{#- Post meta line: published date, difficulty badge, tag chips.
+     Usage:  {% import "partials/post-meta.njk" as meta %}
+             {{ meta.render(post, collections.tags) }}
+     `post` is any object with .date (Date or ISO string), .difficulty
+     (enum string) and .tags (array of slugs). `registry` is the
+     collections.tags array, passed explicitly because a macro in an
+     imported module cannot read the calling page's render context.
+     Difficulty labels are capitalised from the enum — the difficulty.js
+     global is shadowed by the post's front matter on post pages, so it is
+     deliberately not used. -#}
+{%- import "partials/tag-chip.njk" as chip -%}
+{%- set MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] -%}
+{% macro render(post, registry) -%}
+<div class="post-meta">
+  {%- if post.date and post.date.getMonth %}
+    <time datetime="{{ post.date.toISOString() }}">{{ MONTHS[post.date.getMonth()] }} {{ post.date.getDate() }}, {{ post.date.getFullYear() }}</time>
+  {%- elif post.date %}
+    <time datetime="{{ post.date | string }}">{{ post.date | string }}</time>
+  {%- endif %}
+  {%- if post.difficulty %}
+    <span class="badge badge--{{ post.difficulty }}">{{ post.difficulty | capitalize }}</span>
+  {%- endif %}
+  {%- if post.tags %}
+    {%- for tag in post.tags %}
+      {{ chip.render(tag, none, registry) }}
+    {%- endfor %}
+  {%- endif %}
+</div>
+{%- endmacro %}

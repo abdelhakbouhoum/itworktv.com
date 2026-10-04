@@ -1,0 +1,101 @@
+{#-
+  jsonld.njk — structured data, one <script type="application/ld+json">
+  per page. Included from head.njk, so it shares head.njk's context:
+  indexable, isHome, isPost, isTag, tagSlug, tagName, tagDescription,
+  pageTitle, metaDescription, ogImage, modifiedIso + the page's own
+  `title`, `description`, `tags` and the `site` global.
+
+  HARD RULE: JSON is never hand-written in a template. Every object is a
+  Nunjucks literal passed through the `jsonld` filter (JSON.stringify),
+  registered by the eleventy-engineer in eleventy.config.js:
+
+    eleventyConfig.addFilter("jsonld",
+      (value) => value === undefined || value === null ? "" : JSON.stringify(value));
+
+  `undefined` values are dropped from the JSON by JSON.stringify, which is
+  how optional keys are handled here.
+
+  Emitted types (and ONLY these): WebSite, Organization, BlogPosting,
+  CollectionPage, WebPage, BreadcrumbList, ListItem, ImageObject.
+  NEVER HowTo, FAQPage or SearchAction (CLAUDE.md).
+-#}
+{%- if indexable == "true" -%}
+{#- Optional key values are precomputed so object literals stay flat. -#}
+{%- set section = undefined -%}
+{%- if tags and tags | length > 0 -%}
+{#- Seeded with "" (NOT undefined): a `set` inside a `for` only
+      propagates out of the loop when the variable already holds a
+      non-undefined value in the outer frame (Nunjucks frame scoping) -#}
+{%- set primaryTagName = "" -%}
+{%- for t in collections.tags -%}
+{%- if t.slug == tags[0] -%}
+{%- set primaryTagName = t.name -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set section = primaryTagName if primaryTagName else tags[0] -%}
+{%- endif -%}
+{%- set keywords = tags | join(", ") if tags else undefined -%}
+
+{#-
+  Page shape decides the @graph (PLAN §3 URL map):
+    /                        -> WebSite + Organization
+    /posts/<slug>/           -> BlogPosting + BreadcrumbList
+    /tags/<tag>/ (+ /page/N) -> CollectionPage + BreadcrumbList
+    anything else indexable  -> WebPage
+-#}
+{%- if isHome -%}
+{%- set graph = [
+  { "@type": "WebSite",
+    "name": site.title,
+    "url": site.url ~ "/" },
+  { "@type": "Organization",
+    "name": site.title,
+    "url": site.url ~ "/",
+    "logo": { "@type": "ImageObject", "url": site.url ~ "/assets/img/favicon.svg" } }
+] -%}
+{%- elif isPost -%}
+{%- set graph = [
+  { "@type": "BlogPosting",
+    "headline": title,
+    "description": description,
+    "image": ogImage,
+    "author": { "@type": "Person", "name": site.author.name },
+    "publisher": { "@type": "Organization",
+      "name": site.title,
+      "logo": { "@type": "ImageObject", "url": site.url ~ "/assets/img/favicon.svg" } },
+    "datePublished": page.date.toISOString(),
+    "dateModified": modifiedIso,
+    "mainEntityOfPage": { "@type": "WebPage", "@id": site.url ~ page.url },
+    "keywords": keywords,
+    "articleSection": section },
+  { "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": site.title, "item": site.url ~ "/" },
+      { "@type": "ListItem", "position": 2, "name": "Posts", "item": site.url ~ "/posts/" },
+      { "@type": "ListItem", "position": 3, "name": title, "item": site.url ~ page.url }
+    ] }
+] -%}
+{%- elif isTag -%}
+{%- set graph = [
+  { "@type": "CollectionPage",
+    "name": tagName,
+    "description": tagDescription,
+    "url": site.url ~ page.url },
+  { "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": site.title, "item": site.url ~ "/" },
+      { "@type": "ListItem", "position": 2, "name": "Tags", "item": site.url ~ "/tags/" },
+      { "@type": "ListItem", "position": 3, "name": tagName, "item": site.url ~ page.url }
+    ] }
+] -%}
+{%- else -%}
+{%- set graph = [
+  { "@type": "WebPage",
+    "name": title if title else pageTitle,
+    "description": metaDescription,
+    "url": site.url ~ page.url }
+] -%}
+{%- endif -%}
+
+<script type="application/ld+json">{{ { "@context": "https://schema.org", "@graph": graph } | jsonld }}</script>
+{%- endif -%}

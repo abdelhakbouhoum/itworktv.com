@@ -1,0 +1,21 @@
+{#- Code block frame: language label bar + copy button + aria-live status.
+     Progressive enhancement: the block renders fully without JS; the button
+     only becomes functional when /assets/js/copy-code.js is loaded (pages
+     with code blocks only).
+     Usage:  {% import "partials/copy-code.njk" as codeblock %}
+             {{ codeblock.render("bash", '<pre class="language-bash" tabindex="0"><code class="language-bash">…</code></pre>') }}
+     `pre_html` is the exact Prism-highlighted <pre> markup, emitted safe. -#}
+{% macro render(lang, pre_html) -%}
+<div class="code-block">
+  <div class="code-block__bar">
+    <span class="code-block__lang">{{ lang if lang else "text" }}</span>
+    <button class="copy-btn" type="button" aria-label="Copy code to clipboard">
+      <svg class="copy-btn__copy" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+      <svg class="copy-btn__check" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>
+      <span class="copy-btn__label">Copy</span>
+    </button>
+  </div>
+  {{ pre_html | safe }}
+  <span class="copy-status visually-hidden" role="status"></span>
+</div>
+{%- endmacro %}

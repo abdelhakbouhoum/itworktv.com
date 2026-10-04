@@ -1,0 +1,15 @@
+{#- Layout for static pages (/about/, /contact/, /privacy/, /tags/, …):
+     base + one <h1> + prose wrapper. Pages may override the blocks. -#}
+{% extends "base.njk" %}
+
+{% block content %}
+<div class="container prose">
+  {% block breadcrumbs %}{% endblock %}
+  {% block title %}
+    <h1>{{ title }}</h1>
+  {% endblock %}
+  {% block body %}
+    {{ content | safe }}
+  {% endblock %}
+</div>
+{% endblock %}

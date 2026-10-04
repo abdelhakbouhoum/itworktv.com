@@ -1,0 +1,19 @@
+{#- Author byline: monogram, name (linked to /about/), bio.
+     The monogram is INLINED (not an <img>) because budget rule B8 forbids
+     images from the site's own origin; it renders in theme colours.
+     Reads site.author ({name, bio, monogram}) from src/_data/site.js. -#}
+{%- set a = site.author if site and site.author else {} -%}
+<div class="author">
+  {# Keep in sync with src/assets/img/monogram.svg (standalone file). #}
+  <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true" focusable="false">
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="var(--accent, #0E7490)"/>
+    <g fill="none" stroke="var(--accent-contrast, #FFFFFF)" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="16" y1="20" x2="16" y2="44" stroke-width="6"/>
+      <polyline points="28,20 33.5,44 39,30 44.5,44 50,20" stroke-width="5.5"/>
+    </g>
+  </svg>
+  <div>
+    <a class="author__name" href="/about/">{{ a.name if a.name else "IT Work TV Team" }}</a>
+    {%- if a.bio %}<p class="author__bio">{{ a.bio }}</p>{% endif %}
+  </div>
+</div>

@@ -1,0 +1,50 @@
+{
+  "name": "itworktv",
+  "version": "0.1.0",
+  "description": "IT Work TV — one practical, tested IT tip per day, for the people who keep systems running.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "validate": "node scripts/validate-content.mjs",
+    "css": "node scripts/build-css.mjs",
+    "elephant": "eleventy",
+    "pagefind": "pagefind --site _site",
+    "headers": "node scripts/build-headers.mjs",
+    "check:budgets": "node scripts/check-budgets.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "build": "node scripts/clean.mjs && node scripts/validate-content.mjs && node scripts/build-css.mjs && eleventy && pagefind --site _site && node scripts/build-headers.mjs && node scripts/check-budgets.mjs",
+    "check": "node scripts/validate-content.mjs && node scripts/check-contrast.mjs",
+    "dev": "eleventy --serve",
+    "new": "node scripts/new-post.mjs",
+    "queue": "node scripts/queue.mjs",
+    "test": "node --test",
+    "img:optimize": "node scripts/img-optimize.mjs",
+    "img:upload": "node scripts/img-upload.mjs"
+  },
+  "dependencies": {
+    "@11ty/eleventy": "^3.1.6",
+    "@11ty/eleventy-plugin-rss": "^3.1.0",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.2",
+    "html-minifier-terser": "^7.2.0",
+    "lightningcss": "^1.33.0",
+    "markdown-it": "^14.2.0",
+    "markdown-it-anchor": "^10.0.0",
+    "markdown-it-attrs": "^5.0.1",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-footnote": "^4.0.0",
+    "pagefind": "^1.5.2"
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.15.1",
+    "html-validate": "^11.16.2",
+    "linkinator": "^8.1.0",
+    "pa11y-ci": "^4.1.1",
+    "sharp": "^0.35.5",
+    "wrangler": "^4.147.0"
+  }
+}

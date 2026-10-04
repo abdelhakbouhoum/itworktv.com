@@ -1,0 +1,106 @@
+{
+  "windows": {
+    "name": "Windows",
+    "description": "Windows 10 and 11 client work: Group Policy, Windows Update, Defender, networking, and the settings an administrator actually changes."
+  },
+  "windows-server": {
+    "name": "Windows Server",
+    "description": "Active Directory, DNS, DHCP, file and print services, Group Policy, and day-to-day care of Windows Server hosts."
+  },
+  "linux": {
+    "name": "Linux",
+    "description": "Distributions, systemd, package management, filesystems and permissions on the machines that do not have a desktop."
+  },
+  "macos": {
+    "name": "macOS",
+    "description": "Managing Macs in a mixed fleet: MDM enrolment, defaults, permissions, and the Unix-shaped parts underneath."
+  },
+  "powershell": {
+    "name": "PowerShell",
+    "description": "PowerShell 5.1 and 7 for real administration: remoting, CIM, pipelines, error handling and scripts that are safe to run twice."
+  },
+  "bash": {
+    "name": "Bash and Shell",
+    "description": "Shell scripting for systems work: quoting done right, exit codes, `set -euo pipefail`, and small scripts that survive contact with production."
+  },
+  "networking": {
+    "name": "Networking",
+    "description": "DNS, DHCP, routing, VLANs, firewalls and the layered packet walk that turns \"it won't connect\" into a specific hop."
+  },
+  "active-directory": {
+    "name": "Active Directory",
+    "description": "Domains, OU design, group policy, replication, Kerberos and the identity plumbing an organisation runs on."
+  },
+  "security": {
+    "name": "Security",
+    "description": "Patching, hardening, least privilege, key and certificate handling, and first-response triage when something looks wrong."
+  },
+  "helpdesk": {
+    "name": "Help Desk",
+    "description": "Tier-1 workflows: remote support, ticket triage, repeatable diagnostics, and deflecting the same three tickets every week."
+  },
+  "automation": {
+    "name": "Automation",
+    "description": "Task Scheduler, cron, configuration management and idempotent scripting — making the second run free."
+  },
+  "virtualization": {
+    "name": "Virtualization",
+    "description": "Hyper-V, Proxmox, VMware ESXi, snapshots, checkpoints, and the backup conversations people postpone."
+  },
+  "containers": {
+    "name": "Containers",
+    "description": "Docker and OCI images: building lean images, running with the right limits, and reading the logs when a container will not start."
+  },
+  "kubernetes": {
+    "name": "Kubernetes",
+    "description": "Clusters, deployments, services and manifests for administrators who did not write the platform."
+  },
+  "ci-cd": {
+    "name": "CI/CD",
+    "description": "Pipelines, GitHub Actions, build and release automation, and keeping a pipeline honest as it grows."
+  },
+  "cloud": {
+    "name": "Cloud",
+    "description": "AWS, Azure and Google Cloud day-to-day operations: IAM, quotas, storage classes, billing and cost surprises."
+  },
+  "cloudflare": {
+    "name": "Cloudflare",
+    "description": "DNS, Workers, Pages, R2, WAF and Zero Trust for the team that owns the zone rather than the vendor contract."
+  },
+  "backup-recovery": {
+    "name": "Backup and Recovery",
+    "description": "Designing backups you have actually restored, retention that does not fill the disk, and rehearsing a recovery."
+  },
+  "storage": {
+    "name": "Storage",
+    "description": "Disks, RAID, SMART, filesystems, quotas, shares and the space emergency at 02:00."
+  },
+  "monitoring": {
+    "name": "Monitoring",
+    "description": "Metrics, logs, uptime checks and alerting — including how to build an alert somebody will actually read."
+  },
+  "dns": {
+    "name": "DNS",
+    "description": "Zone design, record types, and the \"why can't I resolve this\" chase: dig, nslookup, zone transfers, and split-brain resolvers."
+  },
+  "azure": {
+    "name": "Microsoft Azure",
+    "description": "The Azure surfaces IT actually manages: identities and access, storage, virtual machines, diagnostics, and the billing rules that surprise people."
+  },
+  "aws": {
+    "name": "Amazon Web Services",
+    "description": "The AWS surfaces IT actually manages: IAM, S3, EC2, VPC, CloudWatch, and the cost centres that quietly grow."
+  },
+  "databases": {
+    "name": "Databases",
+    "description": "Data-model fundamentals, indexes, locking, and the daily admin of keeping a production database fast, backed up and upgradable."
+  },
+  "sql-server": {
+    "name": "SQL Server",
+    "description": "Always On, maintenance plans, backups, and the service-pack-and-cumulative-update treadmill on the servers that hold the company's data."
+  },
+  "postgresql": {
+    "name": "PostgreSQL",
+    "description": "psql and pgAdmin day-to-day: vacuum, replication, logical decoding, and extending a Postgres install without breaking the people who depend on it."
+  }
+}

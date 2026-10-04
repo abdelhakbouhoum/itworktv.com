@@ -1,0 +1,31 @@
+{#- Post card used by /posts/ and /tags/<tag>/ listings.
+     Usage:  {% import "partials/post-card.njk" as card %}
+             <div class="post-list">
+               {% for post in collection %}{{ card.render(post, collections.tags) }}{% endfor %}
+             </div>
+     `post` is an Eleventy collection item (front matter on top level).
+     `registry` is the collections.tags array, passed explicitly because a
+     macro in an imported module cannot read the calling page's render
+     context. The primary tag (first in post.tags) is what PLAN §4 says the
+     card emphasises. -#}
+{%- import "partials/tag-chip.njk" as chip -%}
+{%- set MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] -%}
+{% macro render(post, registry) -%}
+<article class="post-card">
+  <h2 class="post-card__title"><a href="{{ post.url }}">{{ post.title | safe }}</a></h2>
+  <p class="post-card__desc">{{ post.description }}</p>
+  <div class="post-card__meta">
+    {%- if post.date and post.date.getMonth %}
+      <time datetime="{{ post.date.toISOString() }}">{{ MONTHS[post.date.getMonth()] }} {{ post.date.getDate() }}, {{ post.date.getFullYear() }}</time>
+    {%- elif post.date %}
+      <time datetime="{{ post.date | string }}">{{ post.date | string }}</time>
+    {%- endif %}
+    {%- if post.difficulty %}
+      <span class="badge badge--{{ post.difficulty }}">{{ post.difficulty | capitalize }}</span>
+    {%- endif %}
+    {%- if post.tags and post.tags.length %}
+      {{ chip.render(post.tags[0], none, registry) }}
+    {%- endif %}
+  </div>
+</article>
+{%- endmacro %}

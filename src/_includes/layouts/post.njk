@@ -1,0 +1,82 @@
+{#- Post layout: the money page (/posts/<slug>/).
+     - data-pagefind-body scopes Pagefind to the article body only (R10).
+     - TOC aside is sticky on wide screens; `toc` is an optional variable
+       the Eleventy config can set (array of {id, text}); the `toc` block
+       remains as a manual override.
+     - prev_next / related are slots filled by the pagination/related work
+       (P2.4); markup contracts are documented inline.
+     - Breadcrumb slot is present but intentionally unused (PLAN §2:
+       breadcrumbs NOT ADOPTED). -#}
+{% extends "base.njk" %}
+{% import "partials/post-meta.njk" as postmeta %}
+
+{% block content %}
+<div class="post-layout container">
+  {% block breadcrumbs %}{% endblock %}
+
+  <header class="post-header">
+    <h1>{{ title }}</h1>
+    {{ postmeta.render({ url: page.url, date: date, difficulty: difficulty, tags: tags }, collections.tags) }}
+  </header>
+
+  {% block tested_on %}
+  {%- if tested_on and tested_on.length -%}
+  <div class="tested-on">
+    <span class="tested-on__label"><svg aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>Tested on</span>
+    {%- for env in tested_on -%}
+      <span class="tested-on__item">{{ env }}</span>
+    {%- endfor -%}
+  </div>
+  {%- endif -%}
+  {% endblock %}
+
+  <div class="post-article">
+    <div class="prose" data-pagefind-body>
+      {% block body %}
+        {{ content | safe }}
+      {% endblock %}
+      {% include "partials/author.njk" %}
+    </div>
+
+    {%- if toc and toc.length %}
+    <aside class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ol>
+        {%- for item in toc -%}
+        <li><a href="#{{ item.id }}">{{ item.text }}</a></li>
+        {%- endfor -%}
+      </ol>
+    </aside>
+    {%- else %}
+    {% block toc %}{% endblock %}
+    {%- endif %}
+  </div>
+
+  {% block prev_next %}
+  {#- Filled by P2.4. Contract:
+      <nav class="post-nav" aria-label="Adjacent posts">
+        <a class="post-nav__item" href="…">
+          <span class="post-nav__label">Newer</span>
+          <span>{{ previous post title }}</span>
+        </a>
+        <a class="post-nav__item is-next" href="…">
+          <span class="post-nav__label">Older</span>
+          <span>{{ next post title }}</span>
+        </a>
+      </nav>
+  -#}
+  {% endblock %}
+
+  {% block related %}
+  {#- Filled by P2.4. Contract:
+      <section class="related">
+        <h2>More in {{ primary tag display name }}</h2>
+        <div class="post-list">
+          {% import "partials/post-card.njk" as card %}
+          {{ card.render(post, collections.tags) }} …
+        </div>
+      </section>
+  -#}
+  {% endblock %}
+</div>
+{% endblock %}

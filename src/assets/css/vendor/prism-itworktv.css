@@ -1,0 +1,55 @@
+/* IT Work TV — Prism theme (build-time syntax highlighting, zero client JS).
+   Every token colour is a var(--code-*) custom property defined in main.css,
+   so highlighting follows the theme system with no JS and no hardcoded hex.
+   Bundled into the single main.<hash>.css file by lightningcss (@import). */
+
+.code-line { display: block; }
+
+/* base + text-like tokens */
+.token.punctuation,
+.token.operator,
+.token.attr-equal { color: var(--code-operator); }
+.token.property,
+.token.atrule,
+.token.rule { color: var(--code-text); }
+
+/* comments, doctypes, prolog */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: var(--code-comment); font-style: italic; }
+
+/* keywords & directives */
+.token.keyword,
+.token.directive,
+.token.important { color: var(--code-keyword); font-weight: 600; }
+
+/* strings, chars, regex, entities, inserted */
+.token.string,
+.token.char,
+.token.regex,
+.token.entity,
+.token.attr-value,
+.token.inserted,
+.token.url { color: var(--code-string); }
+
+/* numbers, constants, symbols, booleans */
+.token.number,
+.token.constant,
+.token.symbol,
+.token.boolean { color: var(--code-number); }
+
+/* functions, class names, variables, builtins */
+.token.function,
+.token.class-name,
+.token.attr-name,
+.token.variable,
+.token.builtin,
+.token.property-id { color: var(--code-function); }
+
+/* markup: tags & selectors */
+.token.tag,
+.token.selector { color: var(--code-tag); }
+
+/* deletion & escape */
+.token.deleted { color: var(--code-deleted); }

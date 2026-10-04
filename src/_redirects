@@ -1,0 +1,28 @@
+# IT Work TV — Cloudflare Pages _redirects
+#
+# PURPOSE: content moves only. A 301 is appended to this file when a PUBLISHED
+# URL is renamed. Nothing else belongs here.
+#
+# FORMAT: one redirect per line, "from to status". Blank lines and lines
+# starting with # are ignored by Pages.
+#
+# 1. NO www -> apex rule goes in this file. Domain-level redirects are
+#    explicitly NOT supported in Pages _redirects (verified 2026-10-04,
+#    https://developers.cloudflare.com/pages/configuration/redirects/).
+#    www.itworktv.com -> itworktv.com is a Cloudflare ZONE-LEVEL Redirect
+#    Rule created in the dashboard — see docs/SETUP.md, step 4.
+# 2. NO host of any kind in "from" or "to". No https:// rule, no apex rule,
+#    no cross-domain rule. Paths only.
+#
+# WHEN A PUBLISHED SLUG IS RENAMED (PLAN §3.2 / §5.2 rule 6: renaming is the
+# only event, and it is a 301, never a delete), append one line plus a dated
+# comment so qa-auditor can confirm the destination still exists in the
+# sitemap:
+#
+#   /posts/<old-slug>/  /posts/<new-slug>/  301   # 2026-11-01: renamed <old> -> <new>
+#
+# Rules: status is always 301 (never 302). The old URL keeps serving until
+# the new URL is fully indexed, so entries are rarely, if ever, deleted.
+# Cap: 2,100 rules total (PLAN §10.6) — we will use single digits.
+#
+# (Intentionally empty for now: the site has published zero URLs yet.)

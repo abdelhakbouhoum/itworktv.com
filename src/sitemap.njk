@@ -1,0 +1,43 @@
+---
+permalink: /sitemap.xml
+layout: false
+---
+{#-
+  sitemap.xml (P1.10). PLAN §3:
+    - every <loc> is an indexable page — membership is decided by the ONE
+      shared macro (PLAN §2.3), never re-implemented here;
+    - lastmod = updated ?? date (date = publication date, UTC);
+    - no <changefreq> / <priority> (Google ignores them);
+    - the sitemap never lists itself.
+
+  `collections.pagesAll` items expose .url, .date (a JS Date, set by
+  Eleventy from the front-matter `date`) and .data (the front-matter
+  cascade — item.data.robots is the §2.3 escape hatch, item.data.updated
+  the revision date). Drafts never ship, but the `draft` guard is kept:
+  a leaked draft must not leak into the sitemap either.
+-#}
+{% import "partials/indexing.njk" as indexing %}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for item in collections.pagesAll -%}
+{%- set indexable = indexing.is_indexable(item, collections, item.data.robots) -%}
+{%- if indexable == "true" and not item.data.draft -%}
+{#- lastmod: real revision date when present (PLAN §4), else publication
+      date. `updated` may be a string (schema) or a Date (YAML auto-parse). -#}
+{%- set lastmod = undefined -%}
+{%- if item.data.updated -%}
+{%- if item.data.updated is string -%}
+{%- set lastmod = item.data.updated -%}
+{%- else -%}
+{%- set lastmod = item.data.updated.toISOString() -%}
+{%- endif -%}
+{%- else -%}
+{%- set lastmod = item.date.toISOString() -%}
+{%- endif -%}
+  <url>
+    <loc>{{ site.url }}{{ item.url }}</loc>
+    <lastmod>{{ lastmod }}</lastmod>
+  </url>
+{%- endif -%}
+{%- endfor -%}
+</urlset>

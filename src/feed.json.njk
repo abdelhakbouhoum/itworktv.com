@@ -1,0 +1,65 @@
+---
+permalink: /feed.json
+layout: false
+---
+{#-
+  JSON Feed 1.1 (P1.10). The 20 newest posts, absolute URLs.
+
+  Written by a template, not by the RSS plugin (PLAN §3, line /feed.json).
+  The plugin's json virtual template is not used (and adding feedPlugin
+  to the config would also collide with this template's /feed.json… it
+  only collides if pointed here, but PLAN says: template, not plugin).
+
+  Every interpolated JSON value goes through the `jsonld` filter
+  (JSON.stringify, registered in eleventy.config.js) — no hand-written
+  JSON (CLAUDE.md). Items are accumulated as JSON strings and joined;
+  the `jsonld` filter is what makes object/array values (tags) safe.
+-#}
+{%- set items = "" -%}
+{%- for post in collections.posts.slice(0, 20) -%}
+{#- date_modified: real revision when present, else publication (PLAN §4) -#}
+{%- set modified = post.date.toISOString() -%}
+{%- if post.data.updated -%}
+{%- if post.data.updated is string -%}
+{%- set modified = post.data.updated -%}
+{%- else -%}
+{%- set modified = post.data.updated.toISOString() -%}
+{%- endif -%}
+{%- endif -%}
+{#- Item image: the post hero when present (r2: key -> public R2 host),
+      else the branded 1200x630 default (P2.12). -#}
+{%- set itemImage = site.url ~ "/assets/img/og-default.jpg" -%}
+{%- if post.data.image and post.data.image.startsWith("http") -%}
+{%- set itemImage = post.data.image -%}
+{%- elif post.data.image -%}
+{%- set itemImage = "https://img.itworktv.com/" ~ (post.data.image | replace("r2:", "")) -%}
+{%- endif -%}
+{%- set item = {
+  "id": site.url ~ post.url,
+  "url": site.url ~ post.url,
+  "title": post.data.title,
+  "content_html": post.content,
+  "summary": post.data.description,
+  "date_published": post.date.toISOString(),
+  "date_modified": modified,
+  "image": itemImage,
+  "tags": post.data.tags,
+  "author": { "name": site.author.name, "url": site.url ~ "/about/" }
+} -%}
+{%- set items = items ~ (item | jsonld) ~ (", " if not loop.last else "") -%}
+{%- endfor -%}
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": {{ (site.title | default("")) | jsonld }},
+  "home_page_url": {{ (site.url ~ "/" | default("")) | jsonld }},
+  "feed_url": {{ (site.url ~ "/feed.json" | default("")) | jsonld }},
+  "description": {{ (site.description | default("")) | jsonld }},
+  "language": "en",
+  "icon": {{ (site.url ~ "/assets/img/icon-192.png" | default("")) | jsonld }},
+  "image": {{ (site.url ~ "/assets/img/og-default.jpg" | default("")) | jsonld }},
+  "author": {
+    "name": {{ (site.author.name | default("")) | jsonld }},
+    "url": {{ (site.url ~ "/about/" | default("")) | jsonld }}
+  },
+  "items": [{{ items }}]
+}

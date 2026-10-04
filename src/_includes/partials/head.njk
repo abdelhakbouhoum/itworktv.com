@@ -1,0 +1,151 @@
+{#-
+  head.njk — everything inside <head> for every HTML page (P1.9).
+
+  INTEGRATION CONTRACT (design-engineer, base.njk):
+    <head> must contain exactly:
+      {% include "partials/head.njk" %}
+      ...theme-init.njk, the fingerprinted CSS <link>, nothing else that
+      duplicates what this partial owns.
+    This partial owns: charset/viewport, <title>, meta description, the
+    single self-canonical (indexable pages only), the robots meta, both
+    theme-color metas, Open Graph + Twitter card, feed autodiscovery,
+    favicon/manifest links, the preconnect to the image host, and the
+    JSON-LD include at the very bottom. base.njk must not emit any of
+    these itself (no second <title>, no duplicate canonical).
+
+  DATA CONTRACT (eleventy-engineer, src/_data/site.js):
+    site.title, site.url (https, no trailing slash), site.description,
+    site.author.name. `site.tagline` is used when present and guarded.
+
+  Indexability comes from the ONE shared macro (PLAN §2.3). The optional
+  `robots` front-matter value is the §2.3 escape hatch (Eleventy v3 has no
+  `page.data`, so it is passed through explicitly — top-level template var).
+-#}
+{% import "partials/indexing.njk" as indexing %}
+{%- set indexable = indexing.is_indexable(page, collections, robots) -%}
+
+{#- URL shape, decided once from the URL (PLAN §3).
+      /            -> parts ["", ""]
+      /posts/      -> ["", "posts", ""]
+      /posts/p/2/  -> ["", "posts", "page", "2", ""]
+      /posts/x/    -> ["", "posts", "x", ""]
+      /tags/       -> ["", "tags", ""]
+      /tags/x/     -> ["", "tags", "x", ""]
+      /tags/x/p/2/ -> ["", "tags", "x", "page", "2", ""] -#}
+{%- set parts = page.url.split("/") -%}
+{%- set isHome = page.url == "/" -%}
+{%- set isPost = parts[1] == "posts" and parts[2] and parts[2] != "page" and parts[3] == "" -%}
+{%- set isTag = parts[1] == "tags" and parts[2] -%}
+{%- set tagSlug = parts[2] if isTag else undefined -%}
+
+{#- Tag name + description from the registry collection (PLAN §2.2).
+      Seeded with "" (NOT undefined): a `set` inside a `for` only
+      propagates out of the loop when the variable already holds a
+      non-undefined value in the outer frame (Nunjucks frame scoping) -#}
+{%- set tagName = "" -%}
+{%- set tagDescription = "" -%}
+{%- for t in collections.tags -%}
+{%- if t.slug == tagSlug -%}
+{%- set tagName = t.name -%}
+{%- set tagDescription = t.description -%}
+{%- endif -%}
+{%- endfor -%}
+
+{#- <title>: "<Page> | IT Work TV". Home uses the brand + tagline. -#}
+{%- if isHome -%}
+{%- set pageTitle = site.title ~ (" – " ~ site.tagline if site.tagline else "") -%}
+{%- elif isTag and tagName -%}
+{%- set pageTitle = (title if title else tagName) ~ " | " ~ site.title -%}
+{%- else -%}
+{%- set pageTitle = (title if title else site.title) ~ " | " ~ site.title -%}
+{%- endif -%}
+
+{#- meta description: posts/pages from front matter, thin-or-thick tag
+      pages from the registry, home from the site description. -#}
+{%- if isHome -%}
+{%- set metaDescription = site.description -%}
+{%- elif isTag and tagDescription -%}
+{%- set metaDescription = tagDescription -%}
+{%- else -%}
+{%- set metaDescription = description if description else site.description -%}
+{%- endif -%}
+
+{#- OG image: the post's hero when present, else the branded default.
+      front-matter `image` is `r2:YYYY/MM/slug/file` (PLAN §4); the r2:
+      prefix is an internal handle — the public host is img.itworktv.com. -#}
+{%- set ogImage = site.url ~ "/assets/img/og-default.jpg" -%}
+{%- if image and image.startsWith("http") -%}
+{%- set ogImage = image -%}
+{%- elif image -%}
+{%- set ogImage = "https://img.itworktv.com/" ~ (image | replace("r2:", "")) -%}
+{%- endif -%}
+
+{#- article:modified_time / dateModified: real revision date when present,
+      else the publication date. `updated` may arrive as a string (PLAN §4
+      says string) or as a Date (YAML auto-parse) — both handled. -#}
+{%- set modifiedIso = page.date.toISOString() -%}
+{%- if updated -%}
+{%- if updated is string -%}
+{%- set modifiedIso = updated -%}
+{%- else -%}
+{%- set modifiedIso = updated.toISOString() -%}
+{%- endif -%}
+{%- endif -%}
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ pageTitle }}</title>
+<meta name="description" content="{{ metaDescription }}">
+
+{#- Canonical: self, absolute, indexable pages ONLY (PLAN §3.1). -#}
+{%- if indexable == "true" -%}
+<link rel="canonical" href="{{ site.url }}{{ page.url }}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+{#- Escape hatch: front-matter robots value is emitted as-is. -#}
+{%- elif robots is defined -%}
+<meta name="robots" content="{{ robots }}">
+{#- Thin tag pages pass link equity onward (PLAN §2.3 / §5.4). -#}
+{%- elif isTag -%}
+<meta name="robots" content="noindex, follow">
+{%- else -%}
+<meta name="robots" content="noindex">
+{%- endif -%}
+
+{#- Brand surface colour; keep in sync with tokens.json (P1.7). -#}
+<meta name="theme-color" content="#0A1220" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+
+<link rel="icon" type="image/svg+xml" href="{{ site.url }}/assets/img/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ site.url }}/assets/img/apple-touch-icon.png">
+<link rel="manifest" href="{{ site.url }}/site.webmanifest">
+
+{#- The only third-party host that serves content: the R2 image CDN. -#}
+<link rel="preconnect" href="https://img.itworktv.com">
+
+{#- Feed autodiscovery — on every page (PLAN §3). -#}
+<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ site.url }}/feed.xml">
+<link rel="alternate" type="application/feed+json" title="{{ site.title }}" href="{{ site.url }}/feed.json">
+
+{#- Open Graph + Twitter card. -#}
+<meta property="og:site_name" content="{{ site.title }}">
+{%- if isPost -%}
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="{{ page.date.toISOString() }}">
+<meta property="article:modified_time" content="{{ modifiedIso }}">
+{%- else -%}
+<meta property="og:type" content="website">
+{%- endif -%}
+<meta property="og:title" content="{{ pageTitle }}">
+<meta property="og:description" content="{{ metaDescription }}">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:image" content="{{ ogImage }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ pageTitle }}">
+<meta name="twitter:description" content="{{ metaDescription }}">
+<meta name="twitter:image" content="{{ ogImage }}">
+
+{#- JSON-LD lives in its own partial so head stays readable (P1.9). -#}
+{% include "partials/jsonld.njk" %}

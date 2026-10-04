@@ -1,0 +1,22 @@
+{#- A single tag pill + the tag display-name helper.
+     The tag registry is the frozen `collections.tags` collection (PLAN §2.2).
+     It must be PASSED IN as an argument, not looked up: a macro in an
+     imported module cannot see the calling page's render context (Nunjucks
+     scoping), and on post pages the post's front-matter `tags` array
+     shadows the tags.json global anyway. Falls back to the slug when no
+     registry entry matches (or when no registry is passed).
+     Usage:
+       {% import "partials/tag-chip.njk" as chip %}
+       {{ chip.render("windows", none, collections.tags) }}            the pill
+       {{ chip.render("powershell", 42, collections.tags) }}          the pill with post count
+       {{ chip.name("windows", collections.tags) }}                   the display name only -#}
+{% macro name(slug, registry) -%}
+{%- set found = none -%}
+{%- for item in registry -%}
+  {%- if item.slug == slug %}{% set found = item %}{% endif -%}
+{%- endfor -%}
+{{ found.name if found and found.name else slug }}
+{%- endmacro %}
+{% macro render(slug, count, registry) -%}
+<a class="tag-chip" href="/tags/{{ slug }}/">{{ name(slug, registry) }}{%- if count is not undefined and count is not none %} <span class="tag-chip__count" aria-hidden="true">({{ count }})</span>{% endif -%}</a>
+{%- endmacro %}

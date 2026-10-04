@@ -62,6 +62,16 @@ Confirmed correct in the brief: 500 builds/mo Free, 20-min build timeout, 20,000
 
 Custom agent types in `.claude/agents/` are **only registered at session start**. They could not be used as `subagent_type` in this session, so delegates are spawned as `general-purpose` with the persona from their agent file inlined in the prompt. **A session restart registers the roster for real** — recommend restarting after GATE 1 approval.
 
+## Phase 1 status (live)
+
+| Agent | Status | Notes |
+|---|---|---|
+| `eleventy-engineer` | running | config, scripts, tests; receiving owner-spec limit correction + 2 design-engineer routing fixes (build-css `filename`, selective `addPassthroughCopy` excluding `theme-init.js`) |
+| `design-engineer` | **done** | CSS 4,049 B gzipped (budget 15,360), theme-init 144 B, toggle 624 B, copy-code 1,006 B — all < 1 KB; all contrast pairs pass; templates verified through Eleventy's own loader path. **P2 contract:** imported-module macros don't see caller context; `post-card`/`post-meta`/`tag-chip` take the registry as explicit argument |
+| `seo-specialist` | **done** | 211 assertions + 20-case macro suite through real nunjucks 3.2.4. Found+fixed a Nunjucks `set`-in-`for`-loop frame-scoping bug. Templates at `src/` root (feed/sitemap/robots) — `_includes/` files never render as pages. P2.13 in PLAN corrected: `BreadcrumbList` IS emitted on posts + tag pages (owner brief §6.4) |
+| `content-strategist` | **done** | 26 tags, WRITING.md aligned to owner spec |
+| `devops-engineer` | **done** | _headers (12 rules), _redirects, .env.example, ci.yml, dependabot, SETUP.md, IMAGES.md (storage math: ~148 yrs to 10 GB) |
+
 ## Next (Phase 1 — Foundation, in progress)
 
 Running in parallel against the frozen PLAN §2.2 contract:
@@ -102,6 +112,9 @@ Then: `npm run build` must be green → commit Phase 1 → `qa-auditor` full pas
 | D8 | Git identity set **repo-local** only (`git config user.name/user.email`, not `--global`) | nothing else in the user's machine is touched; identity belongs to this repo |
 | D9 | Analytics confirmed as **Pages Metrics auto-injection** (D6 stands, owner confirmed) | fewer first-party bytes, Cloudflare owns the beacon's CSP shape |
 | D10 | The contract from PLAN §2.2 is the **frozen contract for Phase 1** — no re-announcement task needed; agents code against it now | PLAN §2.2 already froze the names; a separate "freeze" task would add ceremony without information |
+| D11 | **PLAN §4 corrected to the owner's hard spec** (found via content-strategist's cross-check): `title` ≤ 65 (was 15–70), `description` 120–160 (was 120–158), `tags` 1–5 (was 1–3), `date` = `YYYY-MM-DD` date-only (was full ISO 8601), `tested_on` optional (was required). The architect's numbers are demoted to soft editorial guidance in WRITING.md. **Owner brief wins over architect refinement.** | The brief is the contract; validator + docs + QA all had to agree on one set of numbers |
+| D12 | **Tag registry expanded 20 → 26**: added `dns`, `azure`, `aws`, `databases`, `sql-server`, `postgresql` (named explicitly in the owner's brief; architect's refined list had dropped them). Thin tags are zero-cost (`noindex, follow`, out of sitemap). | Stated topics include cloud (Azure/AWS/GCP) and databases; the taxonomy must have a home for them |
+| D13 | **Phase 1 deviations accepted (devops-engineer flags)**: (a) `style-src 'self' 'unsafe-inline'` in the CSP — Pagefind injects `<style>` at runtime; **QA must verify in Phase 2 that removing it does not break `/search/`; if it doesn't, drop `unsafe-inline`** (recorded as risk, not silently kept). (b) Six extra path `noindex` rules in `_headers` for feeds/sitemap/robots/search/pagefind — consistent with §2.3. (c) `ci.yml` targets branch `main`. (d) `labeler.yml` + `ISSUE_TEMPLATE` dropped (one-author site, no ceremony) — PLAN §2 tree updated. (e) PLAN §2 `images-src/` wording fixed: originals are **gitignored and local-only**, per the owner brief and `.gitignore`. | Deviations were flagged by the agent, reviewed by the orchestrator, and recorded here — nothing is silent |
 
 ## Risks / blockers
 

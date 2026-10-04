@@ -1,0 +1,60 @@
+{#-
+  Indexability predicate — the SINGLE implementation of the indexability rule (PLAN §2.3).
+
+  head.njk and sitemap.njk both import this macro. Do NOT duplicate the predicate
+  anywhere else: budget rules B11/B12 (PLAN §10.7) mechanically assert that the
+  robots meta and the sitemap agree, so any drift fails the build.
+
+  Import:
+    {% import "partials/indexing.njk" as indexing %}
+    {% set indexable = indexing.is_indexable(page, collections, robots) %}
+
+  Arguments:
+    page        — Eleventy `page` metadata for the current page, or a
+                  `collections.pagesAll` item (anything exposing `.url`).
+    collections — the `collections` global (reads `collections.postsByTag`).
+    robots      — optional. The page's explicit front-matter `robots:` value
+                  (the escape hatch, PLAN §2.3, "wins"). Pass the top-level
+                  `robots` variable from a page template, or `item.data.robots`
+                  when iterating a collection. PLAN §2.3 names it
+                  `page.data.robots`; Eleventy v3 exposes no `page.data`
+                  property (verified against @11ty/eleventy 3.1.6 source), so
+                  the value is passed explicitly.
+
+  Returns the string "true" or "false" (whitespace-trimmed by construction).
+
+  P1.6 note: the eleventy-engineer spike confirms {% import %} + macro capture
+  in Eleventy v3. If it reports FAIL, this predicate moves to a filter
+  registered in eleventy.config.js (PLAN §2.3 fallback) and the callers below
+  switch to `indexable | is_indexable`-style filter syntax.
+-#}
+{% macro is_indexable(page, collections, robots=undefined) -%}
+{%- set indexable = true -%}
+{# 1. 404 page is never indexable -#}
+{%- if page.url == "/404.html" -%}
+{%- set indexable = false -%}
+{# 2. Static assets and site files are never indexable
+      (/pagefind/* per the PLAN §3 URL map, which marks it non-indexable) -#}
+{%- elif page.url.startsWith("/assets/") or page.url.startsWith("/_headers/") or page.url.startsWith("/_redirects/") or page.url.startsWith("/pagefind/") or page.url.endsWith(".map") -%}
+{%- set indexable = false -%}
+{# 3. The search UI -#}
+{%- elif page.url.startsWith("/search/") -%}
+{%- set indexable = false -%}
+{# 4. Feeds, sitemap and robots -#}
+{%- elif page.url in ["/feed.xml", "/feed.json", "/sitemap.xml", "/robots.txt"] -%}
+{%- set indexable = false -%}
+{# 5. Explicit front-matter robots value (escape hatch — wins over every rule) -#}
+{%- elif robots is defined -%}
+{%- set indexable = false -%}
+{# 6. Tag pages with fewer than 3 posts: noindex, follow (out of the sitemap).
+      /tags/<tag>/        -> split: ["", "tags", "<tag>", ""]
+      /tags/<tag>/page/N/ -> split: ["", "tags", "<tag>", "page", "N", ""]
+      The bare /tags/ index has parts[2] == "" and stays indexable. -#}
+{%- elif page.url.startsWith("/tags/") -%}
+{%- set parts = page.url.split("/") -%}
+{%- if parts[2] and (parts[3] == "" or parts[3] == "page") and collections.postsByTag[parts[2]] | length < 3 -%}
+{%- set indexable = false -%}
+{%- endif -%}
+{%- endif -%}
+{{- "true" if indexable else "false" -}}
+{% endmacro %}

@@ -1,0 +1,8 @@
+{#- Theme toggle button. The two icons are swapped by CSS based on the
+     effective theme (data-theme or prefers-color-scheme), so no JS is needed
+     for the icon; /assets/js/theme-toggle.js (< 1 KB) handles persistence,
+     aria-pressed and the accessible name. aria-pressed=true when dark. -#}
+<button type="button" class="theme-toggle icon-btn" aria-pressed="false" aria-label="Switch to dark theme">
+  <svg class="icon-moon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg>
+  <svg class="icon-sun" aria-hidden="true" focusable="false"><use href="#i-sun"></use></svg>
+</button>

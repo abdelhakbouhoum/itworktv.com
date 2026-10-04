@@ -1,0 +1,26 @@
+{#- Root layout. All document metadata (charset, viewport, title, canonical,
+     robots, theme-color, favicons, manifest, feeds, Open Graph, JSON-LD)
+     comes from partials/head.njk (P1.9, owned by seo-specialist) — this
+     layout must not duplicate any of it. base.njk contributes only the
+     structural shell: html lang, the color-scheme meta, the fingerprinted
+     CSS link, the byte-stable inline theme-init script (hashed into the CSP
+     by scripts/build-headers.mjs), skip link, header, main and footer. -#}
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "partials/head.njk" %}
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="{{ cssManifest.css if cssManifest else '/assets/main.css' }}">
+  <script>{{ (themeInit or "") | safe }}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  {% include "partials/icons.njk" %}
+  {% include "partials/header.njk" %}
+  <main id="main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  {% include "partials/footer.njk" %}
+  <script defer src="/assets/js/theme-toggle.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IT Work TV Team">
+  <!-- IT Work TV Team placeholder avatar: "IW" mark on an accent square.
+       Used inline in src/_includes/partials/author.njk and referenced by
+       src/assets/manifest.webmanifest — keep geometry in sync. -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="var(--accent, #0E7490)"/>
+  <g fill="none" stroke="var(--accent-contrast, #FFFFFF)" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="16" y1="20" x2="16" y2="44" stroke-width="6"/>
+    <polyline points="28,20 33.5,44 39,30 44.5,44 50,20" stroke-width="5.5"/>
+  </g>
+</svg>

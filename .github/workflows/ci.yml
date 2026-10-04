@@ -1,0 +1,65 @@
+# IT Work TV — CI
+#
+# Runs on every pull request and every push to the default branch (main).
+# Node 22 ONLY: Cloudflare Pages pins 22 (NODE_VERSION=22) and .nvmrc pins
+# 22, so testing any other major here would let 24-only constructs through
+# and break production (PLAN R4).
+#
+# Steps: npm ci -> npm run check -> npm run build -> npm test -> upload _site.
+# Lighthouse / pa11y-ci / html-validate / linkinator jobs arrive in Phase 2
+# (P2.14) and weekly audit (P2.14/PLAN §6.4 hybrid) — deliberately NOT here.
+#
+# Quality bar: every `uses:` is pinned to a major version; only
+# `permissions: contents: read` is granted (nothing in this workflow can
+# write to the repo, open issues, or read other secrets).
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: check, build, test
+    runs-on: ubuntu-latest
+    # Mirror the Pages 20-minute build timeout (PLAN §10.6): a hang that
+    # passes CI would fail the production deploy.
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run content + contrast checks
+        run: npm run check
+
+      - name: Build the site
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Upload _site as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site
+          retention-days: 7

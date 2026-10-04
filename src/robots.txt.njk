@@ -1,0 +1,13 @@
+---
+permalink: /robots.txt
+layout: false
+---
+{#-
+  robots.txt (P1.10). PLAN §3: Allow: /, sitemap line, no Disallow of
+  anything — disallowing is not a deindexing tool. Non-HTML routes
+  (/feed.*, /sitemap.xml, /search/, /assets/*, /pagefind/*) are
+  noindexed at the edge via _headers X-Robots-Tag, not here.
+-#}
+User-agent: *
+Allow: /
+Sitemap: {{ site.url }}/sitemap.xml

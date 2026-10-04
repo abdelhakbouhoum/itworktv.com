@@ -1,0 +1,44 @@
+---
+permalink: /feed.xml
+layout: false
+---
+{#-
+  RSS 2.0 feed (P1.10). PLAN §3: the 20 newest posts, absolute URLs,
+  full content.
+
+  Filters come from @11ty/eleventy-plugin-rss v3, which the config must
+  register for its NUNJUCKS FILTERS (dateToRfc822,
+  getNewestCollectionItemDate, …):
+
+    import rssPlugin from "@11ty/eleventy-plugin-rss";   // or { rssPlugin }
+    eleventyConfig.addPlugin(rssPlugin);
+
+  Do NOT also add feedPlugin (the virtual-template variant): its default
+  output path is /feed.xml and would collide with this template. PLAN §2
+  puts the feed behind a real template, not the plugin's virtual one.
+
+  `post.content` is the post's rendered article HTML WITHOUT the layout
+  (Eleventy renderPageEntryWithoutLayout) — i.e. the full post body,
+  which is what content:encoded is for.
+-#}
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>{{ site.title | escape }}</title>
+    <description>{{ site.description | escape }}</description>
+    <link>{{ site.url }}/</link>
+    <language>en</language>
+    <lastBuildDate>{{ collections.posts | getNewestCollectionItemDate | dateToRfc822 }}</lastBuildDate>
+    <atom:link href="{{ site.url }}/feed.xml" rel="self" type="application/rss+xml"/>
+{%- for post in collections.posts.slice(0, 20) -%}
+    <item>
+      <title>{{ post.data.title | escape }}</title>
+      <link>{{ site.url }}{{ post.url }}</link>
+      <guid isPermaLink="true">{{ site.url }}{{ post.url }}</guid>
+      <description>{{ post.data.description | escape }}</description>
+      <pubDate>{{ post.date | dateToRfc822 }}</pubDate>
+      <content:encoded><![CDATA[{{ post.content }}]]></content:encoded>
+    </item>
+{%- endfor -%}
+  </channel>
+</rss>

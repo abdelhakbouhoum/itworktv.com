@@ -1,0 +1,17 @@
+{
+  "name": "IT Work TV",
+  "short_name": "IT Work TV",
+  "description": "One practical IT tip a day for sysadmins, helpdesk, DevOps and IT pros.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1220",
+  "theme_color": "#0A1220",
+  "icons": [
+    {
+      "src": "/assets/img/monogram.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

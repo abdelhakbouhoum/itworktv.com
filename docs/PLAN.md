@@ -142,8 +142,7 @@ itworktv.com/
 │   │   ├── lighthouse.yml             [devops-engineer]  LHCI against the preview deployment
 │   │   └── weekly-audit.yml           [devops-engineer]  monthly link + contrast + budget sweep
 │   ├── dependabot.yml                 [devops-engineer]  npm weekly, github-actions weekly
-│   ├── labeler.yml                    [devops-engineer]  path → owner, so a PR auto-labels its agent
-│   └── ISSUE_TEMPLATE/*.md            [devops-engineer]
+│   (labeler.yml / ISSUE_TEMPLATE dropped at Phase 1 — not worth the ceremony on a one-author site; see PROGRESS D13)
 │
 ├── docs/                              [see per file]
 │   ├── PLAN.md                        [site-architect]  THIS FILE. Structure, numbers, gates.
@@ -154,8 +153,8 @@ itworktv.com/
 │   ├── SETUP.md                       [devops-engineer]  click-by-click Cloudflare go-live
 │   └── IMAGES.md                      [devops-engineer]  image workflow, r2: syntax, storage math
 │
-├── images-src/                        [content-strategist drops / devops-engineer processes]
-│   └── YYYY/MM/<slug>/                source screenshots, committed, gitignored-safe (see IMAGES.md)
+├── images-src/                        [owner drops / devops-engineer processes]  GITIGNORED — originals stay local, never in git or in the deploy
+│   └── YYYY/MM/<slug>/                source screenshots (see IMAGES.md)
 ├── images-out/                        [devops-engineer]  GITIGNORED. sharp output: responsive WebP variants
 │
 └── src/
@@ -349,13 +348,13 @@ Enforced mechanically by `scripts/validate-content.mjs`. A post that fails does 
 
 | Field | Type | Required | Constraints | Meaning | Default |
 |---|---|---|---|---|---|
-| `title` | string | **yes** | 15–70 chars; no trailing `.`; no ALL CAPS; no `"` unescaped | The H1 and the `<title>` suffix. Written for a searcher with a problem, not for a brand. | — |
-| `description` | string | **yes** | 120–158 chars; ends with a period; no keyword stuffing | Meta description and the RSS `<description>`. Must stand alone as a Google snippet. | — |
-| `date` | string | **yes** | ISO 8601 UTC, `YYYY-MM-DDTHH:MM:SSZ`; **must equal** the `YYYY-MM-DD` in the filename | Publication time. UTC, always (hard rule 6). Also the scheduler: a future date keeps the post out of the build. | — |
+| `title` | string | **yes** | **≤ 65 chars** (owner hard spec); no trailing `.`; no ALL CAPS; no `"` unescaped | The H1 and the `<title>` suffix. Written for a searcher with a problem, not for a brand. | — |
+| `description` | string | **yes** | **120–160 chars** (owner hard spec); ends with a period; no keyword stuffing. Aim for ≤ 158 for clean Google snippet rendering — the validator allows up to 160. | Meta description and the RSS `<description>`. Must stand alone as a Google snippet. | — |
+| `date` | string | **yes** | `YYYY-MM-DD` (UTC date, as in the owner brief's example); **must equal** the `YYYY-MM-DD` in the filename | Publication date. UTC, always (hard rule 6). Also the scheduler: a future date keeps the post out of the build. Date-level granularity is the contract — no time-of-day. | — |
 | `updated` | string \| null | no | Same format as `date`; must be ≥ `date` | Real editorial revision time. Feeds `<lastmod>` and sitemap `<lastmod>`. | `null` → falls back to `date` |
-| `tags` | array of strings | **yes** | 1–3 entries; every entry must exist as a key in `src/_data/tags.json`; **no duplicates** | **The first tag is the primary topic** — it drives `post-card` emphasis, the breadcrumb-free "related" block, and the tag feed most readers follow. | — |
+| `tags` | array of strings | **yes** | **1–5 entries** (owner hard spec); every entry must exist as a key in `src/_data/tags.json`; **no duplicates**. Editorial guidance: 1–3 is plenty; use 4–5 only when the post genuinely spans them. | **The first tag is the primary topic** — it drives `post-card` emphasis, the breadcrumb-free "related" block, and the tag feed most readers follow. | — |
 | `difficulty` | enum string | **yes** | exactly `beginner` \| `intermediate` \| `advanced` | Reader self-selection. Shown as a chip; used as a facet on tag pages. | `intermediate` |
-| `tested_on` | array of strings | **yes** | 1–3 entries; each ≤ 40 chars | Exactly what the commands were run against, e.g. `"Windows 11 23H2"`, `"PowerShell 7.4"`. **The golden rule is enforced here**: a post that cannot name its test environment does not ship. | — |
+| `tested_on` | array of strings | **no** (owner brief marks it optional; strongly recommended) | 1–5 entries; each ≤ 40 chars | Exactly what the commands were run against, e.g. `"Windows 11 23H2"`, `"PowerShell 7.4"`. The golden rule says a post without a named test environment should not ship — enforced by the pre-publish checklist, not by the build. | `[]` |
 | `image` | string \| null | no | `null` or `r2:<YYYY>/<MM>/<slug>/<file>`; the key **must exist** in `src/_data/images.json` | Hero/social image. Referenced by `r2:` so it never passes through `_site`. | `null` → no OG image, site default is used |
 | `imageAlt` | string | **conditional** | **required if `image` is set.** 10–125 chars; must not begin "image of", "picture of", "screenshot of", "graph of" | Describes the *information* in the image, not its existence. A screenshot of a terminal showing a PID is alt `"Task Manager showing explorer.exe holding PID 4321"`, not `"screenshot"`. | — |
 | `draft` | boolean | no | `true` \| `false` | Excluded from `_site` entirely and from every feed. For work in progress on a public repo. | `false` |
@@ -380,8 +379,8 @@ Enforced mechanically by `scripts/validate-content.mjs`. A post that fails does 
 ```yaml
 ---
 title: "Find the process using a port on Windows"
-description: "Identify which process owns a given TCP or UDP port on Windows, and close it safely without rebooting the machine."
-date: "2026-10-04T06:00:00Z"
+description: "Identify which process owns a given TCP or UDP port on Windows with netstat or Get-NetTCPConnection, then stop it safely without rebooting the machine."
+date: "2026-10-04"
 updated: null
 tags: [networking, windows]
 difficulty: intermediate
@@ -422,9 +421,11 @@ Keys are slugs. `count` is **not stored** — it is derived from `collections.po
 5. Platform vs concept never mixed in one slug: `windows` (platform) and `powershell` (tool) are separate; `networking` is a concept and is its own slug.
 6. **Renaming a published slug is forbidden.** Add a new slug and a 301. Slug permanence is what makes the registry a stable public URL namespace.
 
-### 5.3 The initial 20 tags
+### 5.3 The initial 26 tags
 
 Authored by `content-strategist` (task 2.1). Each description is 1–2 sentences, written for someone deciding whether a page is worth opening — not a keyword string.
+
+> **Spec-compliance addition (orchestrator, 2026-10-04):** the owner's brief explicitly named `dns`, `azure`, `aws`, `databases`, `sql-server` and `postgresql` as starter tags, and the site's stated topics include cloud (Azure/AWS/GCP) and databases. The final six rows below were added to the architect's list rather than replacing it. Thin tags cost nothing: `< 3 posts` ⇒ `noindex, follow`, out of the sitemap (§5.4).
 
 | Slug | Display name | Description |
 |---|---|---|
@@ -448,6 +449,12 @@ Authored by `content-strategist` (task 2.1). Each description is 1–2 sentences
 | `backup-recovery` | Backup and Recovery | Designing backups you have actually restored, retention that does not fill the disk, and rehearsing a recovery. |
 | `storage` | Storage | Disks, RAID, SMART, filesystems, quotas, shares and the space emergency at 02:00. |
 | `monitoring` | Monitoring | Metrics, logs, uptime checks and alerting — including how to build an alert somebody will actually read. |
+| `dns` | DNS | Zone design, record types, replication, and the "why can't I resolve this" diagnostics: dig, nslookup, zone transfers and split-brain resolvers. |
+| `azure` | Microsoft Azure | The Azure surfaces IT actually manages: identities and access, storage, virtual machines, diagnostics and the billing rules that surprise people. |
+| `aws` | Amazon Web Services | The AWS surfaces IT actually manages: IAM, S3, EC2, VPC, CloudWatch and the cost centres that quietly grow. |
+| `databases` | Databases | Data-model fundamentals, indexes, locking, and the daily admin of keeping a production database fast, backed up and upgradable. |
+| `sql-server` | SQL Server | Always On, maintenance plans, backups, and the service-pack-and-cumulative-update treadmill on the servers that hold the company's data. |
+| `postgresql` | PostgreSQL | psql and pgAdmin day-to-day: vacuum, replication, logical decoding, and extending a Postgres install without breaking the people who depend on it. |
 
 **Coverage check at launch:** §9 Phase 2 requires ≥ 9 seed posts arranged so at least **3 tags have ≥ 3 posts**. Otherwise the tag pages we ship on day one are all `noindex` and the taxonomy launches invisible to search.
 
@@ -589,7 +596,7 @@ The phase has a **hard serial spine of three tasks** — P1.1 → P1.2 → the f
 | P2.10 | `r2:` markdown-it image renderer → `<figure>` with `srcset`, explicit `width`/`height`, `loading="lazy"`; cover images get `fetchpriority="high"` and **no** lazy loading; write `src/_data/images.json` | eleventy-engineer | strong | P1.2 | Par |
 | P2.11 | `scripts/img-optimize.mjs` (sharp: strip metadata, responsive WebP variants) + `scripts/img-upload.mjs` (wrangler, `--cache-control`) | devops-engineer | default | P2.10 | Par |
 | P2.12 | OG images, `og-default.jpg`, favicon set, monogram SVG (Q1) | design-engineer | free | P1.7 | Par |
-| P2.13 | Head/JSON-LD polish: OG + Twitter cards, `BreadcrumbList` omitted, no HowTo/FAQPage/SearchAction (CLAUDE.md forbids), `Article` + `publisher` only | seo-specialist | strong | P1.10, P2.2 | Par |
+| P2.13 | Head/JSON-LD polish: OG + Twitter cards, **`BreadcrumbList` emitted on posts and tag pages (owner brief §6.4 requires it — the "omitted" wording in the first draft was wrong, corrected here 2026-10-04)**, no HowTo/FAQPage/SearchAction (retired/restricted by Google), `BlogPosting` (not bare `Article`) + `CollectionPage` on tag pages | seo-specialist | strong | P1.10, P2.2 | Par |
 | P2.14 | LHCI config + `lighthouse.yml` workflow; `pa11y-ci` config; `html-validate` config; weekly-audit workflow | devops-engineer | default | P1.15 | Par |
 | P2.15 | Full local audit against §9 Phase 2 criteria; file the defect list | qa-auditor | strong | P2.2…P2.14 | Seq |
 | P2.16 | Re-verify contrast in both themes after all tokens land; fix until ≥ 4.5:1 everywhere | design-engineer | free | P2.12, P2.15 | Seq |

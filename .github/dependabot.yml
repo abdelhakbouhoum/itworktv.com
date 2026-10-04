@@ -1,0 +1,36 @@
+# IT Work TV — Dependabot
+#
+# Weekly, for npm and github-actions. Minor + patch updates are GROUPED:
+# each ecosystem gets one PR per batch instead of one PR per package
+# (PLAN R18 — low-maintenance-for-years). Major-version updates are
+# deliberately NOT grouped, so each breaking change arrives as its own PR
+# and gets its own decision (and, for dependencies, a PLAN §6.4 row and
+# owner approval per hard rule 4).
+#
+# No `npm audit fix --force`, ever (hard rule 4).
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      all-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      all-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
