@@ -30,7 +30,8 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { loadPosts, parseFrontMatter, readTagRegistry } from "./validate-content.mjs";
+import { loadPosts, readTagRegistry } from "./validate-content.mjs";
+import { parseFrontMatter } from "./lib/frontmatter.mjs";
 import { stripDatePrefix } from "./lib/slug.mjs";
 
 const repoRoot = path.join(fileURLToPath(new URL("../", import.meta.url)));
@@ -64,15 +65,25 @@ function walkFiles(dir) {
   const walk = (abs, rel) => {
     for (const entry of readdirSync(abs, { withFileTypes: true })) {
       if (entry.isDirectory()) walk(path.join(abs, entry.name), rel ? `${rel}/${entry.name}` : entry.name);
-      else out.push({ rel, abs: path.join(abs, entry.name), size: statSync(path.join(abs, entry.name)).size });
+      else out.push({ rel: rel ? `${rel}/${entry.name}` : entry.name, abs: path.join(abs, entry.name), size: statSync(path.join(abs, entry.name)).size });
     }
   };
   walk(dir, "");
   return out;
 }
 
-function isHtml(rel) {
-  return rel.endsWith(".html");
+/** As walkFiles, but a missing directory is an empty list, not a throw. */
+function walkFilesSafe(dir) {
+  if (!existsSync(dir)) return [];
+  try {
+    return walkFiles(dir);
+  } catch {
+    return [];
+  }
+}
+
+function isHtml(file) {
+  return file.rel.endsWith(".html");
 }
 
 /** "posts/example/index.html" -> "/posts/example/", "index.html" -> "/", "404.html" -> "/404.html" */
@@ -92,9 +103,19 @@ export function isNeverIndexableByShape(url) {
   return false;
 }
 
-function extractAllUrls(html) {
+/**
+ * Every absolute http(s) URL in the markup, in document order and deduplicated.
+ * `stripNamespaces` drops xmlns / xlink:href namespace URIs (www.w3.org/2000/svg
+ * etc): they are identifiers the browser never dereferences, so counting them
+ * as third-party requests would fail B9 on every inline SVG icon.
+ */
+function extractAllUrls(html, { stripNamespaces = false } = {}) {
   const urls = new Set();
-  for (const m of html.matchAll(/https?:\/\/[^\s"'<>()\\]+/gi)) urls.add(m[0].replace(/[).,;]+$/, ""));
+  for (const m of html.matchAll(/https?:\/\/[^\s"'<>()\\]+/gi)) {
+    const url = m[0].replace(/[).,;]+$/, "");
+    if (stripNamespaces && /^(?:https?:)?\/\/www\.w3\.org\//i.test(url)) continue;
+    urls.add(url);
+  }
   return [...urls];
 }
 
@@ -113,7 +134,7 @@ function extractCanonicals(html) {
 }
 
 function hasNoindexMeta(html) {
-  const re = /<meta\b[^>]*\bname\s*=\s*["']robots["'][^>]*>/i;
+  const re = /<meta\b[^>]*\bname\s*=\s*["']robots["'][^>]*>/gi;
   for (const m of html.matchAll(re)) {
     const contentM = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(m[0]);
     if (contentM && /noindex/i.test(contentM[1])) return true;
@@ -139,8 +160,10 @@ function ruleB1(files) {
 }
 
 function ruleB2() {
+  // Top level only: the CSS bundle is copied to _site/assets/<file>, so a
+  // matching name in _site/assets/css/ would be a duplicate, not the bundle.
   const cssFiles = walkFilesSafe(path.join(siteDir, "assets")).filter(
-    (f) => /^main\.[0-9a-f]{8}\.css$/.test(f.rel)
+    (f) => !f.rel.includes("/") && /^main\.[0-9a-f]{8}\.css$/.test(f.rel)
   );
   if (cssFiles.length !== 1) {
     return record("B2", "fail", `expected exactly one _site/assets/main.<8hex>.css, found ${cssFiles.length}`);
@@ -148,7 +171,9 @@ function ruleB2() {
   const manifestPath = path.join(repoRoot, ".cache", "css-manifest.json");
   if (existsSync(manifestPath)) {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    const expected = manifest.css.replace(/^\//, "");
+    // The manifest path is SITE-absolute ("/assets/main.<hash>.css"); these
+    // entries are _site-relative.
+    const expected = manifest.css.replace(/^\//, "").replace(/^assets\//, "");
     if (cssFiles[0].rel !== expected) {
       return record("B2", "fail", `shipped ${cssFiles[0].rel} but manifest says ${expected}`);
     }
@@ -211,7 +236,7 @@ function ruleB8(files) {
 function ruleB9(files) {
   const seen = new Set();
   for (const f of files.filter(isHtml)) {
-    for (const url of extractAllUrls(readFileSync(f.abs, "utf8"))) {
+    for (const url of extractAllUrls(readFileSync(f.abs, "utf8"), { stripNamespaces: true })) {
       let host;
       try {
         host = new URL(url).hostname;
@@ -363,7 +388,7 @@ function tagOkForUrl(url, tagCount, registry) {
 
 // ---- runner -----------------------------------------------------------------
 
-function main() {
+async function main() {
   if (!existsSync(siteDir)) {
     console.log("[budgets] No _site/ directory found — run `npm run build` first. Nothing to check.");
     return;
@@ -410,8 +435,8 @@ function main() {
     ruleB67Only(files, siteUrl, tagCount, tagReg.registry);
   } else {
     ruleB67Only(files, siteUrl, tagCount, null);
-    record("B11", "skip", "tag registry src/_data/tags.json not present yet");
-    record("B12", "skip", "tag registry src/_data/tags.json not present yet");
+    record("B11", "skip", "tag registry src/_data/tag-registry.json not present yet");
+    record("B12", "skip", "tag registry src/_data/tag-registry.json not present yet");
   }
 
   let fails = 0;

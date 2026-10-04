@@ -112,7 +112,7 @@ Feature code is written by sub-agents, never by the orchestrator. Each owns its 
 ## Conventions
 
 - Front matter lives in `src/posts/YYYY/YYYY-MM-DD-slug.md`; **the slug comes from the filename**.
-- `tags: [a, b, c]` — **the first tag is the primary topic**. Every tag must exist in the registry `src/_data/tags.json`.
+- `tags: [a, b, c]` — **the first tag is the primary topic**. Every tag must exist in the registry `src/_data/tag-registry.json`.
 - Image syntax: `![Alt text](r2:2026/10/slug/shot.webp "Optional caption")` → rewritten at build time to a `<figure>` with `srcset`, explicit `width`/`height`, lazy loading (cover images get `fetchpriority="high"` instead).
 - JSON-LD is generated with `JSON.stringify` in a filter — **never hand-written JSON in a template**.
 - Never emit HowTo, FAQPage or SearchAction structured data.

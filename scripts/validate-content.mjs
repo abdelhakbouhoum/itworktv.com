@@ -16,7 +16,7 @@
  *                   the schema); must EQUAL the YYYY-MM-DD in the filename
  *   - updated:      "YYYY-MM-DD" or null; must be >= date
  *   - tags:         1–5 entries, no duplicates, every entry a key in
- *                   src/_data/tags.json (the first tag is the primary topic)
+ *                   src/_data/tag-registry.json (the first tag is the primary topic)
  *   - difficulty:   beginner | intermediate | advanced
  *   - tested_on:    OPTIONAL; when present: 1–5 strings, each <= 40 chars
  *   - image:        null or "r2:<…>", and if set the key must exist in the
@@ -94,18 +94,18 @@ export function loadPosts(root = repoRoot) {
 }
 
 /**
- * Read the tag registry (src/_data/tags.json).
+ * Read the tag registry (src/_data/tag-registry.json).
  * @returns {{ ok: true, registry: Record<string, {name: string, description: string}> } | { ok: false, error: string }}
  */
 export function readTagRegistry(root = repoRoot) {
-  const p = path.join(root, "src", "_data", "tags.json");
+  const p = path.join(root, "src", "_data", "tag-registry.json");
   if (!existsSync(p)) {
-    return { ok: false, error: `src/_data/tags.json not found (owned by content-strategist, PLAN P1.5/P2.1)` };
+    return { ok: false, error: `src/_data/tag-registry.json not found (owned by content-strategist, PLAN P1.5/P2.1)` };
   }
   try {
     return { ok: true, registry: JSON.parse(readFileSync(p, "utf8")) };
   } catch (err) {
-    return { ok: false, error: `src/_data/tags.json is not valid JSON: ${err.message}` };
+    return { ok: false, error: `src/_data/tag-registry.json is not valid JSON: ${err.message}` };
   }
 }
 
@@ -232,7 +232,7 @@ export function validatePostData(fm, ctx) {
       if (seen.has(tag)) err(`duplicate tag "${tag}"`);
       seen.add(tag);
       if (ctx.registry && !Object.prototype.hasOwnProperty.call(ctx.registry, tag)) {
-        err(`tag "${tag}" is not in the registry src/_data/tags.json`);
+        err(`tag "${tag}" is not in the registry src/_data/tag-registry.json`);
       }
     }
   }

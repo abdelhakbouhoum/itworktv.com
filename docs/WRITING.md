@@ -84,7 +84,7 @@ is a service, stop the service instead.
 
 ### Verify — never omit from a published post
 
-The exact output or state the reader should see after the steps, quoted from your test run. This is what makes the post checkable: if the reader's screen does not match, they know something is different — and Troubleshooting takes over from there.
+The exact output or state the reader should see after the steps, quoted from your test run. This is what makes the post checkable: if the reader's screen does not match, they know something is different — and Troubleshooting takes over from right there.
 
 ````markdown
 ## Verify
@@ -100,7 +100,7 @@ No output, exit code 0. If a row is still listed, the process re-bound the port 
 check the process name from step 2.
 ````
 
-Every published post has a Verify section; the launch acceptance criteria check it. (A `draft` is not bound by this.)
+Every published post has a Verify section; the launch acceptance criteria checks it. (A `draft` is not bound by this.)
 
 ### Troubleshooting — omit only when there is nothing to break
 
@@ -146,17 +146,17 @@ Omit only when there is genuinely nothing external that backs the post. Most fix
 
 ## 3. Front-matter reference
 
-The complete, closed schema, enforced by the content validator: a post that fails does not build, and **any key not in this table fails the build** (a typo in a field name must fail loudly, not ship silently). Source of truth: [`PLAN.md` §4](./PLAN.md#4-front-matter-schema).
+The complete, closed schema, enforced by the content validator: a post that fails does not build, and **any key not in this table fails the build** (a typo in a field name must fail loudly, not ship silently). Source of truth: [`PLAN.md`](./PLAN.md#4-front-matter-schema).
 
 | Field | Type | Required | Constraints | Valid example |
 |---|---|---|---|---|
-| `title` | string | **yes** | ≤ 65 characters; no trailing `.`; no ALL CAPS; no unescaped `"` | `"Find the process using a port on Windows"` |
-| `description` | string | **yes** | 120–160 characters; ends with a period; must stand alone as a Google snippet. Aim for ≤ 158 so the snippet renders cleanly — the validator allows up to 160 | `"Identify which process owns a given TCP or UDP port on Windows, find out what it is, and close it safely — without rebooting the machine or guessing PIDs."` |
+| `title` | string | **yes** | **≤ 65 characters**; no trailing `.`; no ALL CAPS; no unescaped `"` | `"Find the process using a port on Windows"` |
+| `description` | string | **yes** | **120–160 characters** inclusive; ends with a period; must stand alone as a Google snippet (aim for ≤ 158 for a clean snippet — validator allows up to 160) | `"Identify which process owns a given TCP or UDP port on Windows, find out what it is, and close it safely — without rebooting the machine or guessing PIDs."` |
 | `date` | string | **yes** | `YYYY-MM-DD` — UTC, date-only, no time-of-day; **must equal** the date in the filename | `"2026-10-04"` |
-| `updated` | string or `null` | no | same format as `date`; must be ≥ `date`; set only on a real editorial revision | `null` |
-| `tags` | array of strings | **yes** | 1–5 entries — 1–3 is plenty; use 4–5 only when the post genuinely spans them; no duplicates; every entry must exist in [`src/_data/tags.json`](../src/_data/tags.json); **the first tag is the primary topic** | `[networking, windows]` |
+| `updated` | string or `null` | no | `YYYY-MM-DD`; must be ≥ `date`; set only on a real editorial revision | `null` |
+| `tags` | array of strings | **yes** | **1–5 entries** — 1–3 is plenty; use 4–5 only when genuinely spanning; no duplicates; every entry must exist in [`src/_data/tag-registry.json`](../src/_data/tag-registry.json); **first tag = primary topic** | `[networking, windows]` |
 | `difficulty` | enum | **yes** | exactly `beginner`, `intermediate` or `advanced` | `intermediate` |
-| `tested_on` | array of strings | **no** (strongly recommended) | 1–5 entries; each ≤ 40 characters; each must name a real environment (§1) | `["Windows 11 23H2", "PowerShell 7.4"]` |
+| `tested_on` | array of strings | **no** (strongly recommended) | 1–5 entries; each ≤ 40 characters; names a real environment (§1) | `["Windows 11 23H2", "PowerShell 7.4"]` |
 | `image` | string or `null` | no | `null`, or `r2:<YYYY>/<MM>/<slug>/<file>` where the key exists in the image manifest | `"r2:2026/10/find-process-using-port/hero.webp"` |
 | `imageAlt` | string | **if `image` is set** | 10–125 characters; must not begin "image of", "picture of", "screenshot of" or "graph of" | `"PowerShell output showing PID 4321 owning TCP port 8080"` |
 | `draft` | boolean | no | `true` excludes the post from the build and every feed; default `false` | `false` |
@@ -191,10 +191,10 @@ draft: false
 
 ## 4. Tags
 
-The registry lives in [`src/_data/tags.json`](../src/_data/tags.json) — twenty-six slugs at launch, defined in [`PLAN.md` §5.3](./PLAN.md#53-the-initial-26-tags). The rules that matter while you write:
+The registry lives in [`src/_data/tag-registry.json`](../src/_data/tag-registry.json) — twenty-six slugs at launch, defined in [`PLAN.md` §5.3](./PLAN.md#53-the-initial-26-tags). The rules that matter while you write:
 
 - **Use only registry slugs.** The validator rejects a post that carries a tag that is not a key in `tags.json`. The registry is deliberately small and boring; the file is the authoritative list (it wins over any list in prose, including this document).
-- **1–5 tags, no duplicates, and the order matters — though 1–3 is plenty.** Use 4–5 only when the post genuinely spans them. The first tag is the primary topic — it drives the emphasis on post cards, the related-posts block, and the tag feed readers follow. Put the most specific topic first and the platform second: `[networking, windows]`, not `[windows, networking]`, when the post is about a port.
+- **1–5 tags, no duplicates, and the order matters — though 1–3 is plenty.** Use 4–5 only when the post genuinely spans them. The first tag is the primary topic — it drives the card emphasis, the related-posts block, and the tag feed readers follow. Put the most specific topic first and the platform second: `[networking, windows]`, not `[windows, networking]`, when the post is about a port.
 - **You do not need a new tag for every post.** If the topic fits one of the twenty-six, use it. Adding a tag later is cheap (one key in the registry, then first use); renaming a published slug is not — it becomes a 301.
 - **Thin tags are fine.** A tag with fewer than three posts still gets its page; it is simply `noindex, follow` until the third post lands ([`PLAN.md` §5.4](./PLAN.md#54-the--3-posts-rule)). Nothing in your post changes because of this.
 
@@ -218,7 +218,7 @@ The full pipeline (optimise, upload, storage math) is in [`IMAGES.md`](./IMAGES.
 ![PowerShell output showing PID 4321 owning TCP port 8080](r2:2026/10/find-process-using-port/shot-1.webp "Step 2: name the process")
 ```
 
-The build rewrites this into a `<figure>` with a responsive `srcset`, explicit `width`/`height` (which is how the page keeps its layout shift at zero) and lazy loading. The path after `r2:` is `<YYYY>/<MM>/<slug>/<file>` and must match a file the optimiser actually emitted — a key the manifest does not know will not resolve.
+The build rewrites this into a `<figure>` with a responsive `srcset`, explicit `width`/`height` and lazy loading. The path after `r2:` is `<YYYY>/<MM>/<slug>/<file>` and must match a file the optimiser actually emitted — a key the manifest does not know will not resolve.
 
 **Cover images** live in the front matter instead:
 
@@ -257,7 +257,7 @@ Run top to bottom. `npm run check` covers the mechanical half; the rest is yours
 
 ## 8. URLs never change
 
-The URL is the promise. A post at `/posts/find-process-using-port/` lives there forever:
+The URL is the promise. A post at `/posts/find-the-process-using-a-port-on-windows/` lives there forever:
 
 - The slug comes from the filename — `YYYY-MM-DD-slug.md` publishes at `/posts/slug/`; the date is stripped and never appears in a URL. Never hand-write a `permalink`; the field is not allowed at all.
 - **Once published, a URL never changes.** A rename is not an edit: it is a new slug plus a `301` line in [`src/_redirects`](../src/_redirects) (owned by the devops engineer, with a dated comment line so the auditor can confirm the destination still exists) — and the old URL is never served again. Ask before renaming anything that has shipped.

@@ -352,7 +352,7 @@ Enforced mechanically by `scripts/validate-content.mjs`. A post that fails does 
 | `description` | string | **yes** | **120–160 chars** (owner hard spec); ends with a period; no keyword stuffing. Aim for ≤ 158 for clean Google snippet rendering — the validator allows up to 160. | Meta description and the RSS `<description>`. Must stand alone as a Google snippet. | — |
 | `date` | string | **yes** | `YYYY-MM-DD` (UTC date, as in the owner brief's example); **must equal** the `YYYY-MM-DD` in the filename | Publication date. UTC, always (hard rule 6). Also the scheduler: a future date keeps the post out of the build. Date-level granularity is the contract — no time-of-day. | — |
 | `updated` | string \| null | no | Same format as `date`; must be ≥ `date` | Real editorial revision time. Feeds `<lastmod>` and sitemap `<lastmod>`. | `null` → falls back to `date` |
-| `tags` | array of strings | **yes** | **1–5 entries** (owner hard spec); every entry must exist as a key in `src/_data/tags.json`; **no duplicates**. Editorial guidance: 1–3 is plenty; use 4–5 only when the post genuinely spans them. | **The first tag is the primary topic** — it drives `post-card` emphasis, the breadcrumb-free "related" block, and the tag feed most readers follow. | — |
+| `tags` | array of strings | **yes** | **1–5 entries** (owner hard spec); every entry must exist as a key in `src/_data/tag-registry.json`; **no duplicates**. Editorial guidance: 1–3 is plenty; use 4–5 only when the post genuinely spans them. | **The first tag is the primary topic** — it drives `post-card` emphasis, the breadcrumb-free "related" block, and the tag feed most readers follow. | — |
 | `difficulty` | enum string | **yes** | exactly `beginner` \| `intermediate` \| `advanced` | Reader self-selection. Shown as a chip; used as a facet on tag pages. | `intermediate` |
 | `tested_on` | array of strings | **no** (owner brief marks it optional; strongly recommended) | 1–5 entries; each ≤ 40 chars | Exactly what the commands were run against, e.g. `"Windows 11 23H2"`, `"PowerShell 7.4"`. The golden rule says a post without a named test environment should not ship — enforced by the pre-publish checklist, not by the build. | `[]` |
 | `image` | string \| null | no | `null` or `r2:<YYYY>/<MM>/<slug>/<file>`; the key **must exist** in `src/_data/images.json` | Hero/social image. Referenced by `r2:` so it never passes through `_site`. | `null` → no OG image, site default is used |
@@ -397,7 +397,7 @@ Resolves to: URL `/posts/find-the-process-using-port/` · primary tag `networkin
 
 ## 5. Tag registry
 
-### 5.1 Shape of `src/_data/tags.json`
+### 5.1 Shape of `src/_data/tag-registry.json`
 
 ```json
 {
@@ -559,7 +559,7 @@ The phase has a **hard serial spine of three tasks** — P1.1 → P1.2 → the f
 | P1.2 | `eleventy.config.js` skeleton: `dir` config, input `src` / output `_site`, data `src/_data`, includes `_includes`, **collection names per §2.2**, `stripDatePrefix` filter, `addPassthroughCopy` for `.cache/css` and `src/assets` | eleventy-engineer | strong | P1.1 | Seq |
 | P1.3 | **CONTRACT FREEZE** — `collections.posts`, `postsByTag`, `tags`, `postsAll`; `site.js` key names; `tags.json` schema; `cssManifest` global; indexability macro interface. Announced in `docs/PROGRESS.md`. No code changes to these names after this point without a `main` decision. | site-architect | strong | P1.2 | Seq |
 | P1.4 | `src/_data/site.js` (Q1, Q3 defaults), `nav.js`, `difficulty.js`, `authors.json`, `redirects.json` | eleventy-engineer | strong | P1.3 | Par |
-| P1.5 | `src/_data/tags.json` skeleton with the 20 keys, descriptions drafted | content-strategist | free | P1.3 | Par |
+| P1.5 | `src/_data/tag-registry.json` skeleton with the 20 keys, descriptions drafted | content-strategist | free | P1.3 | Par |
 | P1.6 | **Nunjucks `{% import %}` + async macro spike** (2-hour timebox) for `partials/indexing.njk`. Record PASS/FAIL in `PROGRESS.md`; on FAIL, raise the filter fallback to `main` (§2.3) | eleventy-engineer | strong | P1.2 | Par |
 | P1.7 | `src/assets/css/tokens.json` (full token set, blue/teal default Q2, `contrastPairs` array), `main.css` skeleton, `vendor/prism-itworktv.css` mapping every Prism token to a `--code-*` var | design-engineer | free | P1.3 | Par |
 | P1.8 | Layouts `base.njk`, `page.njk`, `post.njk`; partials `header/footer/theme-init/theme-toggle/copy-code/post-card/post-meta/pagination/tag-chip/author/icons` | design-engineer | free | P1.3, P1.7 | Par |

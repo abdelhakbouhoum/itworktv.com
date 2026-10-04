@@ -9,7 +9,7 @@
  *
  * Rules enforced up-front (so the scaffold is valid by construction):
  *   - title <= 65 chars, no trailing period, not ALL CAPS, no `"`
- *   - 1–5 tags, every one a key in src/_data/tags.json
+ *   - 1–5 tags, every one a key in src/_data/tag-registry.json
  *   - slug (filename minus date prefix) unique across all posts — URLs are
  *     immutable (hard rule 5), so a collision is a hard stop
  *
@@ -164,7 +164,7 @@ function main() {
   }
   for (const tag of tags) {
     if (!Object.prototype.hasOwnProperty.call(reg.registry, tag)) {
-      fail(`tag "${tag}" is not in the registry src/_data/tags.json — add it there first`);
+      fail(`tag "${tag}" is not in the registry src/_data/tag-registry.json — add it there first`);
     }
   }
 
